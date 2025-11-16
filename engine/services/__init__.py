@@ -24,6 +24,9 @@ from engine.services.comment_service import CommentService
 from engine.services.file_service import FileService
 from engine.services.attachment_service import AttachmentService
 
+# Client Management
+from engine.services.client_service import ClientService
+
 __all__ = [
     # User Management / Authentication
     "AddressService",
@@ -51,4 +54,6 @@ __all__ = [
     "FileService",
     "AttachmentService",
 
+    # Client Management
+    "ClientService",
 ]

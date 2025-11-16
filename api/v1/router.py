@@ -19,6 +19,7 @@ from api.v1.application_api import router as application_router
 from api.v1.comment_api import router as comment_router
 from api.v1.approval_api import router as approval_router
 from api.v1.attachment_api import router as attachment_router
+from api.v1.client_api import router as client_router
 
 # System and Analytics
 router.include_router(system_router, prefix="/system", tags=["System"])
@@ -46,4 +47,7 @@ router.include_router(application_router, prefix="/applications", tags=["Applica
 router.include_router(comment_router, prefix="/comments", tags=["Comments"])
 router.include_router(approval_router, prefix="/approvals", tags=["Approvals"])
 router.include_router(attachment_router, prefix="/attachments", tags=["Attachments"])
+
+# Client Management
+router.include_router(client_router, prefix="/clients", tags=["Clients"])
 

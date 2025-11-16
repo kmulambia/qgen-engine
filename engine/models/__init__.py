@@ -26,6 +26,9 @@ from .file_model import FileModel
 from .approval_model import ApprovalModel
 from .attachment_model import AttachmentModel
 
+# Client Management
+from .client_model import ClientModel
+
 __all__ = [
     # Base models
     'Base',
@@ -55,6 +58,7 @@ __all__ = [
     'FileModel',
     'ApprovalModel',
     'AttachmentModel',
-    
-    
+
+    # Client Management
+    'ClientModel',
 ]

@@ -179,6 +179,13 @@ from engine.schemas.application_schemas import (
     ApplicationSchema,
 )
 
+from engine.schemas.client_schemas import (
+    ClientBaseSchema,
+    ClientCreateSchema,
+    ClientUpdateSchema,
+    ClientSchema,
+)
+
 
 # Export all schemas
 __all__ = [
@@ -325,4 +332,9 @@ __all__ = [
     "FileSchema",
     "FileMetadata",
 
+    # Client Management
+    "ClientBaseSchema",
+    "ClientCreateSchema",
+    "ClientUpdateSchema",
+    "ClientSchema",
 ]

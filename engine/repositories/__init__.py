@@ -23,6 +23,9 @@ from engine.repositories.comment_repository import CommentRepository
 from engine.repositories.file_repository import FileRepository
 from engine.repositories.attachment_repository import AttachmentRepository
 
+# Client Management
+from engine.repositories.client_repository import ClientRepository
+
 
 __all__ = [
     # User Management / Authentication
@@ -47,7 +50,9 @@ __all__ = [
     "ApplicationRepository",
     "ApprovalRepository",
     "CommentRepository",
-    "FileRepository", 
+    "FileRepository",
     "AttachmentRepository",
 
+    # Client Management
+    "ClientRepository",
 ]
