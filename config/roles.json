@@ -1,0 +1,17 @@
+{
+    "roles": [
+        {
+            "name": "SuperAdmin",
+            "description": "Has full system access",
+            "is_system_defined": true,
+            "permissions": [
+                {
+                    "name": "ALL",
+                    "description": "Wildcard permission for all access rights",
+                    "code": "*",
+                    "group": "super-admin"
+                }
+            ]
+        }
+    ]
+}

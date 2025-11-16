@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to {{system_name}}</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <header style="background-color: #2c5282; color: white; padding: 20px; text-align: center;">
+        <h1 style="margin: 0;">Welcome to {{system_name}}!</h1>
+    </header>
+    
+    <main style="padding: 20px;">
+        <p>Dear {{user.first_name}} {{user.last_name}},</p>
+        
+        <p>Welcome to {{system_name}}! We're excited to have you join our platform. Your account has been successfully created with the following details:</p>
+        
+        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 5px 0;"><strong>Email:</strong> {{user.email}}</p>
+            <p style="margin: 5px 0;"><strong>Program:</strong> {{role.name}}</p>
+            <p style="margin: 5px 0;"><strong>Workspace:</strong> {{workspace.name}}</p>
+        </div>
+        
+        <p>Here are a few things you can do to get started:</p>
+        
+        <ul>
+            <li>Complete your profile</li>
+            <li>Explore your workspace</li>
+            <li>Review your program permissions</li>
+            <li>Connect with your team members</li>
+        </ul>
+        
+        <p>If you have any questions or need assistance, please don't hesitate to contact our support team at <a href="mailto:{{support_email}}" style="color: #0066cc;">{{support_email}}</a>.</p>
+        
+        <p>Best regards,<br>The {{system_name}} Team</p>
+    </main>
+
+    {{footer}}
+    
+</body>
+</html>
+<style>
+</style>

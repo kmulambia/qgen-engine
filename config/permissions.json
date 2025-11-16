@@ -1,0 +1,352 @@
+{
+    "permissions": [
+        {
+            "name": "All",
+            "description": "universal permission",
+            "code": "*",
+            "group": "*"
+        },
+        {
+            "name": "Universal Permission Management",
+            "description": "universal permission permission",
+            "code": "permission.*",
+            "group": "permissions"
+        },
+        {
+            "name": "List Permission",
+            "description": "list all permissions",
+            "code": "permission.list",
+            "group": "permissions"
+        },
+        {
+            "name": "View Permission",
+            "description": "view a permission",
+            "code": "permission.view",
+            "group": "permissions"
+        },
+        {
+            "name": "Universal User Management",
+            "description": "universal user management permission",
+            "code": "user.*",
+            "group": "users"
+        },
+        {
+            "name": "List User",
+            "description": "list all users",
+            "code": "user.list",
+            "group": "users"
+        },
+        {
+            "name": "View User",
+            "description": "view user details",
+            "code": "user.view",
+            "group": "users"
+        },
+        {
+            "name": "Create User",
+            "description": "create new user",
+            "code": "user.create",
+            "group": "users"
+        },
+        {
+            "name": "Update User",
+            "description": "update existing user",
+            "code": "user.update",
+            "group": "users"
+        },
+        {
+            "name": "Delete User",
+            "description": "delete user",
+            "code": "user.delete",
+            "group": "users"
+        },
+        {
+            "name": "Change User Password",
+            "description": "change user password",
+            "code": "user.change-password",
+            "group": "users"
+        },
+        {
+            "name": "Manage User",
+            "description": "manage user",
+            "code": "user.manage",
+            "group": "users"
+        },
+        {
+            "name": "Universal Role Management",
+            "description": "universal role management permission",
+            "code": "role.*",
+            "group": "roles"
+        },
+        {
+            "name": "List Role",
+            "description": "list all roles",
+            "code": "role.list",
+            "group": "roles"
+        },
+        {
+            "name": "View Role",
+            "description": "view role details",
+            "code": "role.view",
+            "group": "roles"
+        },
+        {
+            "name": "Create Role",
+            "description": "create new role",
+            "code": "role.create",
+            "group": "roles"
+        },
+        {
+            "name": "Update Role",
+            "description": "update existing role",
+            "code": "role.update",
+            "group": "roles"
+        },
+        {
+            "name": "Delete Role",
+            "description": "delete role",
+            "code": "role.delete",
+            "group": "roles"
+        },
+        {
+            "name": "Manage Role",
+            "description": "manage role",
+            "code": "role.manage",
+            "group": "roles"
+        },
+        {
+            "name": "Universal Audit Management",
+            "description": "universal audit management permission",
+            "code": "audit.*",
+            "group": "audits"
+        },
+        {
+            "name": "List Audit",
+            "description": "list all audit logs",
+            "code": "audit.list",
+            "group": "audits"
+        },
+        {
+            "name": "View Audit",
+            "description": "view audit details",
+            "code": "audit.view",
+            "group": "audits"
+        },
+        {
+            "name": "Universal Workspace Management",
+            "description": "universal workspace management permission",
+            "code": "workspace.*",
+            "group": "workspaces"
+        },
+        {
+            "name": "List Workspace",
+            "description": "list all workspaces",
+            "code": "workspace.list",
+            "group": "workspaces"
+        },
+        {
+            "name": "View Workspace",
+            "description": "view workspace details",
+            "code": "workspace.view",
+            "group": "workspaces"
+        },
+        {
+            "name": "Create Workspace",
+            "description": "create new workspace",
+            "code": "workspace.create",
+            "group": "workspaces"
+        },
+        {
+            "name": "Update Workspace",
+            "description": "update existing workspace",
+            "code": "workspace.update",
+            "group": "workspaces"
+        },
+        {
+            "name": "Delete Workspace",
+            "description": "delete workspace",
+            "code": "workspace.delete",
+            "group": "workspaces"
+        },
+        {
+            "name": "Manage Workspace",
+            "description": "manage workspace",
+            "code": "workspace.manage",
+            "group": "workspaces"
+        },
+        {
+            "name": "Universal Workflow Management",
+            "description": "universal workflow management permission",
+            "code": "workflow.*",
+            "group": "workflows"
+        },
+        {
+            "name": "List Workflow",
+            "description": "list all workflows",
+            "code": "workflow.list",
+            "group": "workflows"
+        },
+        {
+            "name": "View Workflow",
+            "description": "view workflow details",
+            "code": "workflow.view",
+            "group": "workflows"
+        },
+        {
+            "name": "Create Workflow",
+            "description": "create new workflow",
+            "code": "workflow.create",
+            "group": "workflows"
+        },
+        {
+            "name": "Update Workflow",
+            "description": "update existing workflow",
+            "code": "workflow.update",
+            "group": "workflows"
+        },
+        {
+            "name": "Delete Workflow",
+            "description": "delete workflow",
+            "code": "workflow.delete",
+            "group": "workflows"
+        },
+        {
+            "name": "Manage Workflow",
+            "description": "manage workflow",
+            "code": "workflow.manage",
+            "group": "workflows"
+        },
+        {
+            "name": "Universal Workflow Stage Management",
+            "description": "universal workflow stage management permission",
+            "code": "workflow.stage.*",
+            "group": "workflows"
+        },
+        {
+            "name": "List Workflow Stage",
+            "description": "list all workflow stages",
+            "code": "workflow.stage.list",
+            "group": "workflows"
+        },
+        {
+            "name": "View Workflow Stage",
+            "description": "view workflow stage details",
+            "code": "workflow.stage.view",
+            "group": "workflows"
+        },
+        {
+            "name": "Create Workflow Stage",
+            "description": "create new workflow stage",
+            "code": "workflow.stage.create",
+            "group": "workflows"
+        },
+        {
+            "name": "Update Workflow Stage",
+            "description": "update existing workflow stage",
+            "code": "workflow.stage.update",
+            "group": "workflows"
+        },
+        {
+            "name": "Delete Workflow Stage",
+            "description": "delete workflow stage",
+            "code": "workflow.stage.delete",
+            "group": "workflows"
+        },
+        {
+            "name": "Manage Workflow Stage",
+            "description": "manage workflow stage",
+            "code": "workflow.stage.manage",
+            "group": "workflows"
+        },
+        {
+            "name": "Universal Workflow Component Management",
+            "description": "universal workflow component management permission",
+            "code": "workflow.component.*",
+            "group": "workflows"
+        },
+        {
+            "name": "List Workflow Component",
+            "description": "list all workflow components",
+            "code": "workflow.component.list",
+            "group": "workflows"
+        },
+        {
+            "name": "Universal File Management",
+            "description": "universal file management permission",
+            "code": "file.*",
+            "group": "files"
+        },
+        {
+            "name": "List File",
+            "description": "list all files",
+            "code": "file.list",
+            "group": "files"
+        },
+        {
+            "name": "View File",
+            "description": "view file details",
+            "code": "file.view",
+            "group": "files"
+        },
+        {
+            "name": "Create File",
+            "description": "create new file",
+            "code": "file.create",
+            "group": "files"
+        },
+        {
+            "name": "Update File",
+            "description": "update existing file",
+            "code": "file.update",
+            "group": "files"
+        },
+        {
+            "name": "Delete File",
+            "description": "delete file",
+            "code": "file.delete",
+            "group": "files"
+        },
+        {
+            "name": "Manage File",
+            "description": "manage file",
+            "code": "file.manage",
+            "group": "files"
+        },
+        {
+            "name": "List Workspace Type",
+            "description": "list all workspace types",
+            "code": "workspace-type.list",
+            "group": "workspace-types"
+        },
+        {
+            "name": "View Workspace Type",
+            "description": "view workspace type details",
+            "code": "workspace-type.view",
+            "group": "workspace-types"
+        },
+        {
+            "name": "Create Workspace Type",
+            "description": "create new workspace type",
+            "code": "workspace-type.create",
+            "group": "workspace-types"
+        },
+        {
+            "name": "Update Workspace Type",
+            "description": "update existing workspace type",
+            "code": "workspace-type.update",
+            "group": "workspace-types"
+        },
+        {
+            "name": "Delete Workspace Type",
+            "description": "delete workspace type",
+            "code": "workspace-type.delete",
+            "group": "workspace-types"
+        },
+        {
+            "name": "Manage Workspace Type",
+            "description": "manage workspace type",
+            "code": "configurations.workspace-type.manage",
+            "group": "configurations"
+        }
+    ]
+}

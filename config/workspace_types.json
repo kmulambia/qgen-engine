@@ -1,0 +1,14 @@
+{
+    "workspace_types": [
+        {
+            "name": "Administration",
+            "description": "Workspace type for administrative purposes and system management",
+            "is_system_defined": true
+        },
+        {
+            "name": "Department",
+            "description": "Workspace type for internal organizational departments",
+            "is_system_defined": true
+        }
+    ]
+}

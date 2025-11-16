@@ -1,0 +1,10 @@
+{
+    "workspaces": [
+        {
+            "name": "Admin",
+            "description": "Default administrative workspace",
+            "workspace_type": "Administration"
+            
+        }
+    ]
+} 
