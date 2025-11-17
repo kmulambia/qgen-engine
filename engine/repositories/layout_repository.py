@@ -11,9 +11,9 @@ class LayoutRepository(BaseRepository[LayoutModel]):
         self.searchable_fields = [
             "name",
             "description",
-            "contact_name",
-            "contact_number",
-            "contact_email",
-            "contact_phone",
+            "company_name",
+            "reference_number",
+            "email",
+            "phone",
             "notes"
         ]

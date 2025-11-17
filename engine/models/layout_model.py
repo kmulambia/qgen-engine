@@ -30,27 +30,27 @@ class LayoutModel(BaseModel):
     )
 
     # Contact information
-    contact_name: Mapped[Optional[str]] = mapped_column(
+    company_name: Mapped[Optional[str]] = mapped_column(
         String(255),
         nullable=True
     )
 
-    contact_number: Mapped[Optional[str]] = mapped_column(
+    reference_number: Mapped[Optional[str]] = mapped_column(
         String(100),
         nullable=True
     )
 
-    contact_email: Mapped[Optional[str]] = mapped_column(
+    email: Mapped[Optional[str]] = mapped_column(
         String(255),
         nullable=True
     )
 
-    contact_phone: Mapped[Optional[str]] = mapped_column(
+    phone: Mapped[Optional[str]] = mapped_column(
         String(50),
         nullable=True
     )
 
-    contact_address: Mapped[Optional[str]] = mapped_column(
+    address: Mapped[Optional[str]] = mapped_column(
         Text,
         nullable=True
     )
