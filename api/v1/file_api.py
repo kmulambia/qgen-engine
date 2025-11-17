@@ -93,7 +93,7 @@ class FileAPI(BaseAPI[FileModel, FileCreateSchema, FileUpdateSchema, FileSchema]
                 # Update file metadata in database
                 existing_file.filename = uploaded_file.name
                 existing_file.original_filename = uploaded_file.original_filename
-                existing_file.url = f"{request.base_url}{self.service.base_url}{uploaded_file.url}"
+                existing_file.url = f"{request.base_url}{self.service.base_url}/serve/{uploaded_file.name}"
                 existing_file.full_path = uploaded_file.full_path
                 existing_file.content_type = uploaded_file.content_type
                 existing_file.size = uploaded_file.size
@@ -142,7 +142,7 @@ class FileAPI(BaseAPI[FileModel, FileCreateSchema, FileUpdateSchema, FileSchema]
                         file_data = FileModel(
                             filename=uploaded_file.name,  # Map name to filename
                             original_filename=uploaded_file.original_filename,
-                            url=f"{request.base_url}{self.service.base_url}{uploaded_file.url}",
+                            url=f"{request.base_url}{self.service.base_url}/serve/{uploaded_file.name}",
                             full_path=uploaded_file.full_path,
                             content_type=uploaded_file.content_type,
                             size=uploaded_file.size,
@@ -164,6 +164,43 @@ class FileAPI(BaseAPI[FileModel, FileCreateSchema, FileUpdateSchema, FileSchema]
                 if isinstance(e, HTTPException):
                     raise e
                 raise ErrorHandling.server_error("Failed to process file upload")
+
+        @self.router.get("/serve/{filename}")
+        async def serve_file(
+                request: Request,
+                filename: str,
+                db_conn: AsyncSession = Depends(get_db),
+        ):
+            """
+            Serve a file by its filename (for direct URL access)
+            """
+            try:
+                # Get file by filename
+                from sqlalchemy import select
+                from engine.models.file_model import FileModel
+                
+                stmt = select(FileModel).where(FileModel.filename == filename)
+                result = await db_conn.execute(stmt)
+                file = result.scalar_one_or_none()
+                
+                if not file:
+                    logger.error(f"File not found: {filename}")
+                    raise ErrorHandling.not_found("File not found")
+
+                if not os.path.exists(file.full_path):
+                    logger.error(f"File not found on disk: {file.full_path}")
+                    raise ErrorHandling.not_found("File not found on disk")
+
+                return FileResponse(
+                    path=file.full_path,
+                    media_type=file.content_type,
+                    filename=file.original_filename
+                )
+            except Exception as e:
+                logger.error(f"Failed to serve file: {str(e)}")
+                if isinstance(e, HTTPException):
+                    raise e
+                raise ErrorHandling.server_error("Failed to serve file")
 
         @self.router.get("/{uid}/download")
         @rate_limit()
