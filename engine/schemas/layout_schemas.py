@@ -13,12 +13,12 @@ class LayoutBaseSchema(BaseModel):
     # Logo
     logo_file_id: Optional[UUID] = Field(None, description="ID of the logo file")
     
-    # Contract information
-    contract_name: Optional[str] = Field(None, max_length=255, description="Contract contact name")
-    contract_number: Optional[str] = Field(None, max_length=100, description="Contract number")
-    contract_email: Optional[str] = Field(None, max_length=255, description="Contract email address")
-    contract_phone: Optional[str] = Field(None, max_length=50, description="Contract phone number")
-    contract_address: Optional[str] = Field(None, description="Contract physical address")
+    # Contact information
+    contact_name: Optional[str] = Field(None, max_length=255, description="Contact person name")
+    contact_number: Optional[str] = Field(None, max_length=100, description="Contact reference number")
+    contact_email: Optional[str] = Field(None, max_length=255, description="Contact email address")
+    contact_phone: Optional[str] = Field(None, max_length=50, description="Contact phone number")
+    contact_address: Optional[str] = Field(None, description="Contact physical address")
     
     # Terms and conditions
     terms_conditions: Optional[str] = Field(None, description="Terms and conditions text")
@@ -43,7 +43,7 @@ class LayoutBaseSchema(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-    @field_validator('contract_email')
+    @field_validator('contact_email')
     @classmethod
     def validate_email(cls, v: Optional[str]) -> Optional[str]:
         """Validate email format if provided"""
@@ -65,18 +65,18 @@ class LayoutUpdateSchema(BaseUpdateSchema):
     name: Optional[str] = Field(None, min_length=1, max_length=255)
     description: Optional[str] = None
     logo_file_id: Optional[UUID] = None
-    contract_name: Optional[str] = Field(None, max_length=255)
-    contract_number: Optional[str] = Field(None, max_length=100)
-    contract_email: Optional[str] = Field(None, max_length=255)
-    contract_phone: Optional[str] = Field(None, max_length=50)
-    contract_address: Optional[str] = None
+    contact_name: Optional[str] = Field(None, max_length=255)
+    contact_number: Optional[str] = Field(None, max_length=100)
+    contact_email: Optional[str] = Field(None, max_length=255)
+    contact_phone: Optional[str] = Field(None, max_length=50)
+    contact_address: Optional[str] = None
     terms_conditions: Optional[str] = None
     notes: Optional[str] = None
     links: Optional[Dict[str, Any]] = None
     custom_fields: Optional[Dict[str, Any]] = None
     is_default: Optional[bool] = None
 
-    @field_validator('contract_email')
+    @field_validator('contact_email')
     @classmethod
     def validate_email(cls, v: Optional[str]) -> Optional[str]:
         """Validate email format if provided"""

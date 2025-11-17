@@ -29,28 +29,28 @@ class LayoutModel(BaseModel):
         nullable=True
     )
 
-    # Contract information
-    contract_name: Mapped[Optional[str]] = mapped_column(
+    # Contact information
+    contact_name: Mapped[Optional[str]] = mapped_column(
         String(255),
         nullable=True
     )
 
-    contract_number: Mapped[Optional[str]] = mapped_column(
+    contact_number: Mapped[Optional[str]] = mapped_column(
         String(100),
         nullable=True
     )
 
-    contract_email: Mapped[Optional[str]] = mapped_column(
+    contact_email: Mapped[Optional[str]] = mapped_column(
         String(255),
         nullable=True
     )
 
-    contract_phone: Mapped[Optional[str]] = mapped_column(
+    contact_phone: Mapped[Optional[str]] = mapped_column(
         String(50),
         nullable=True
     )
 
-    contract_address: Mapped[Optional[str]] = mapped_column(
+    contact_address: Mapped[Optional[str]] = mapped_column(
         Text,
         nullable=True
     )
