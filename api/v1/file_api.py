@@ -40,14 +40,14 @@ class FileAPI(BaseAPI[FileModel, FileCreateSchema, FileUpdateSchema, FileSchema]
         # Remove default POST, PUT, and DELETE endpoints
         routes_to_remove = [
             route for route in self.router.routes
-            if (route.path == "" and route.methods == {"POST"}) or
-               (route.path == "/{uid}" and route.methods == {"PUT"}) or
-               (route.path == "/{uid}" and route.methods == {"DELETE"})
+            if (route.path in ["", "/"] and "POST" in route.methods) or
+               (route.path == "/{uid}" and "PUT" in route.methods) or
+               (route.path == "/{uid}" and "DELETE" in route.methods)
         ]
         for route in routes_to_remove:
             self.router.routes.remove(route)
 
-        @self.router.post("/", response_model=List[FileSchema], status_code=status.HTTP_201_CREATED)
+        @self.router.post("", response_model=List[FileSchema], status_code=status.HTTP_201_CREATED)
         @rate_limit()
         async def upload_files(
                 request: Request,
