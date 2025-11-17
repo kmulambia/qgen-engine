@@ -47,6 +47,67 @@ class FileAPI(BaseAPI[FileModel, FileCreateSchema, FileUpdateSchema, FileSchema]
         for route in routes_to_remove:
             self.router.routes.remove(route)
 
+        @self.router.put("/{uid}", response_model=FileSchema, status_code=status.HTTP_200_OK)
+        @rate_limit()
+        async def update_file(
+                request: Request,
+                uid: UUID,
+                file: UploadFile = File(...),
+                db_conn: AsyncSession = Depends(get_db),
+                token_data: TokenData = Depends(authentication)
+        ) -> FileSchema:
+            """
+            Update/replace an existing file by its ID.
+            This will delete the old file from disk and upload the new one.
+            """
+            try:
+                # Get existing file metadata
+                existing_file = await self.service.get_by_id(db_conn, uid)
+                if not existing_file:
+                    raise ErrorHandling.not_found("File not found")
+
+                # Read new file content
+                content = await file.read()
+                files_data = [{
+                    "content": content,
+                    "filename": file.filename,
+                    "content_type": file.content_type,
+                    "size": len(content)
+                }]
+
+                # Save new file to disk
+                uploaded_files = save_uploaded_files(files_data, None)
+                if not uploaded_files:
+                    raise ErrorHandling.server_error("Failed to save new file")
+
+                uploaded_file = uploaded_files[0]
+
+                # Delete old file from disk if it exists
+                if os.path.exists(existing_file.full_path):
+                    try:
+                        os.remove(existing_file.full_path)
+                    except Exception as e:
+                        logger.error(f"Failed to delete old physical file: {str(e)}")
+                        # Continue with update even if old file deletion fails
+
+                # Update file metadata in database
+                existing_file.filename = uploaded_file.name
+                existing_file.original_filename = uploaded_file.original_filename
+                existing_file.url = f"{request.base_url}{self.service.base_url}{uploaded_file.url}"
+                existing_file.full_path = uploaded_file.full_path
+                existing_file.content_type = uploaded_file.content_type
+                existing_file.size = uploaded_file.size
+                existing_file.file_modified_at = datetime.now(timezone.utc)
+
+                updated_file = await self.service.update(db_conn, uid, existing_file, token_data)
+                return FileSchema.model_validate(updated_file)
+
+            except Exception as e:
+                logger.error(f"Failed to update file: {str(e)}")
+                if isinstance(e, HTTPException):
+                    raise e
+                raise ErrorHandling.server_error("Failed to update file")
+
         @self.router.post("", response_model=List[FileSchema], status_code=status.HTTP_201_CREATED)
         @rate_limit()
         async def upload_files(
