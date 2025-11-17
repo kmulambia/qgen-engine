@@ -29,6 +29,9 @@ from .attachment_model import AttachmentModel
 # Client Management
 from .client_model import ClientModel
 
+# Layouts
+from .layout_model import LayoutModel
+
 __all__ = [
     # Base models
     'Base',
@@ -61,4 +64,7 @@ __all__ = [
 
     # Client Management
     'ClientModel',
+    
+    # Layouts
+    'LayoutModel',
 ]

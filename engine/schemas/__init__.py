@@ -186,6 +186,13 @@ from engine.schemas.client_schemas import (
     ClientSchema,
 )
 
+from engine.schemas.layout_schemas import (
+    LayoutBaseSchema,
+    LayoutCreateSchema,
+    LayoutUpdateSchema,
+    LayoutSchema,
+    LayoutLogoUploadResponse,
+)
 
 # Export all schemas
 __all__ = [
@@ -337,4 +344,11 @@ __all__ = [
     "ClientCreateSchema",
     "ClientUpdateSchema",
     "ClientSchema",
+    
+    # Layouts
+    "LayoutBaseSchema",
+    "LayoutCreateSchema",
+    "LayoutUpdateSchema",
+    "LayoutSchema",
+    "LayoutLogoUploadResponse",
 ]

@@ -26,6 +26,8 @@ from engine.repositories.attachment_repository import AttachmentRepository
 # Client Management
 from engine.repositories.client_repository import ClientRepository
 
+# Layouts
+from engine.repositories.layout_repository import LayoutRepository
 
 __all__ = [
     # User Management / Authentication
@@ -55,4 +57,7 @@ __all__ = [
 
     # Client Management
     "ClientRepository",
+    
+    # Layouts
+    "LayoutRepository",
 ]

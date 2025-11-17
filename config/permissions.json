@@ -347,6 +347,66 @@
             "description": "manage workspace type",
             "code": "configurations.workspace-type.manage",
             "group": "configurations"
+        },
+        {
+            "name": "Universal Layout Management",
+            "description": "universal layout management permission",
+            "code": "layout.*",
+            "group": "layouts"
+        },
+        {
+            "name": "List Layout",
+            "description": "list all layouts",
+            "code": "layout.list",
+            "group": "layouts"
+        },
+        {
+            "name": "View Layout",
+            "description": "view layout details",
+            "code": "layout.view",
+            "group": "layouts"
+        },
+        {
+            "name": "Create Layout",
+            "description": "create new layout",
+            "code": "layout.create",
+            "group": "layouts"
+        },
+        {
+            "name": "Update Layout",
+            "description": "update existing layout",
+            "code": "layout.update",
+            "group": "layouts"
+        },
+        {
+            "name": "Delete Layout",
+            "description": "delete layout",
+            "code": "layout.delete",
+            "group": "layouts"
+        },
+        {
+            "name": "Manage Layout",
+            "description": "manage layout",
+            "code": "layout.manage",
+            "group": "layouts"
+        },
+        {
+            "name": "Upload Layout Logo",
+            "description": "upload or change layout logo",
+            "code": "layout.upload-logo",
+            "group": "layouts"
+        },
+        {
+            "name": "Remove Layout Logo",
+            "description": "remove layout logo",
+            "code": "layout.remove-logo",
+            "group": "layouts"
+        },
+        {
+            "name": "Set Default Layout",
+            "description": "set a layout as default",
+            "code": "layout.set-default",
+            "group": "layouts"
         }
     ]
 }

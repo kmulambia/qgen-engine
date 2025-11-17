@@ -27,6 +27,9 @@ from engine.services.attachment_service import AttachmentService
 # Client Management
 from engine.services.client_service import ClientService
 
+# Layouts
+from engine.services.layout_service import LayoutService
+
 __all__ = [
     # User Management / Authentication
     "AddressService",
@@ -56,4 +59,7 @@ __all__ = [
 
     # Client Management
     "ClientService",
+    
+    # Layouts
+    "LayoutService",
 ]
