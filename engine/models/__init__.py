@@ -32,6 +32,9 @@ from .client_model import ClientModel
 # Layouts
 from .layout_model import LayoutModel
 
+# Quotations
+from .quotation_model import QuotationModel
+
 __all__ = [
     # Base models
     'Base',
@@ -67,4 +70,7 @@ __all__ = [
     
     # Layouts
     'LayoutModel',
+    
+    # Quotations
+    'QuotationModel',
 ]

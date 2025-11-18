@@ -194,6 +194,16 @@ from engine.schemas.layout_schemas import (
     LayoutLogoUploadResponse,
 )
 
+from engine.schemas.quotation_schemas import (
+    QuotationBaseSchema,
+    QuotationCreateSchema,
+    QuotationUpdateSchema,
+    QuotationSchema,
+    QuotationItemSchema,
+    QuotationCalculationResponse,
+    calculate_quotation_totals,
+)
+
 # Export all schemas
 __all__ = [
     # Base schemas
@@ -351,4 +361,13 @@ __all__ = [
     "LayoutUpdateSchema",
     "LayoutSchema",
     "LayoutLogoUploadResponse",
+    
+    # Quotations
+    "QuotationBaseSchema",
+    "QuotationCreateSchema",
+    "QuotationUpdateSchema",
+    "QuotationSchema",
+    "QuotationItemSchema",
+    "QuotationCalculationResponse",
+    "calculate_quotation_totals",
 ]

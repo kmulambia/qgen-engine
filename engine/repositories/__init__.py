@@ -29,6 +29,9 @@ from engine.repositories.client_repository import ClientRepository
 # Layouts
 from engine.repositories.layout_repository import LayoutRepository
 
+# Quotations
+from engine.repositories.quotation_repository import QuotationRepository
+
 __all__ = [
     # User Management / Authentication
     "AddressRepository",
@@ -60,4 +63,7 @@ __all__ = [
     
     # Layouts
     "LayoutRepository",
+    
+    # Quotations
+    "QuotationRepository",
 ]

@@ -30,6 +30,9 @@ from engine.services.client_service import ClientService
 # Layouts
 from engine.services.layout_service import LayoutService
 
+# Quotations
+from engine.services.quotation_service import QuotationService
+
 __all__ = [
     # User Management / Authentication
     "AddressService",
@@ -62,4 +65,7 @@ __all__ = [
     
     # Layouts
     "LayoutService",
+    
+    # Quotations
+    "QuotationService",
 ]
