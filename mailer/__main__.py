@@ -14,8 +14,8 @@ import aio_pika
 
 from engine.utils.config_util import load_config
 from mailer.transports.postmark_transport import PostmarkTransport
-from mailer.transports.aws_ses_transport import AWSSESTransport
-from mailer.transports.smtp_transport import SMTPTransport
+# from mailer.transports.aws_ses_transport import AWSSESTransport
+# from mailer.transports.smtp_transport import SMTPTransport
 from mailer.dependencies.logger import logger
 from mailer.dependencies.amq import get_amq
 from jinja2 import Template
@@ -26,8 +26,8 @@ AMQ_QUEUE_NAME = config.require_variable("AMQ_QUEUE_NAME")
 # Define available transports
 TRANSPORTS = {
     "postmark": PostmarkTransport,
-    "awsses": AWSSESTransport,
-    "smtp": SMTPTransport
+    # "awsses": AWSSESTransport,
+    # "smtp": SMTPTransport
 }
 
 
