@@ -45,6 +45,7 @@ class QuotationBaseSchema(BaseModel):
     items: List[QuotationItemSchema] = Field(..., min_items=1, description="List of quotation items")
     
     # Financial fields
+    currency: str = Field(default="USD", min_length=3, max_length=3, description="Currency code (e.g., USD, EUR, GBP)")
     discount_percentage: Decimal = Field(default=Decimal("0.00"), ge=0, le=100, description="Discount percentage")
     tax_percentage: Decimal = Field(default=Decimal("0.00"), ge=0, le=100, description="Tax percentage")
     
@@ -98,6 +99,7 @@ class QuotationUpdateSchema(BaseUpdateSchema):
     
     items: Optional[List[QuotationItemSchema]] = None
     
+    currency: Optional[str] = Field(None, min_length=3, max_length=3)
     discount_percentage: Optional[Decimal] = Field(None, ge=0, le=100)
     tax_percentage: Optional[Decimal] = Field(None, ge=0, le=100)
     
@@ -137,6 +139,7 @@ class QuotationSchema(BaseSchema):
     items: List[QuotationItemSchema]
     
     # Calculated fields (required in response)
+    currency: str = Field(..., description="Currency code")
     subtotal: Decimal = Field(..., description="Subtotal before discount and tax")
     discount_percentage: Decimal
     discount_amount: Decimal = Field(..., description="Calculated discount amount")
@@ -158,6 +161,7 @@ class QuotationSchema(BaseSchema):
 class QuotationCalculationResponse(BaseModel):
     """Response schema for calculation preview"""
     items: List[QuotationItemSchema]
+    currency: str
     subtotal: Decimal
     discount_percentage: Decimal
     discount_amount: Decimal

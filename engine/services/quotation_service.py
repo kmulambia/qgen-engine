@@ -67,7 +67,8 @@ class QuotationService(BaseService[QuotationModel]):
         quotation_data['total'] = calculations['total']
         
         # Convert items back to dict format for JSON storage
-        quotation_data['items'] = [item.model_dump() for item in items]
+        # Use mode='json' to serialize Decimals as floats
+        quotation_data['items'] = [item.model_dump(mode='json') for item in items]
         
         return quotation_data
     

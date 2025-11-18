@@ -21,6 +21,7 @@ from api.v1.approval_api import router as approval_router
 from api.v1.attachment_api import router as attachment_router
 from api.v1.client_api import router as client_router
 from api.v1.layout_api import router as layout_router
+from api.v1.quotation_api import router as quotation_router     
 
 # System and Analytics
 router.include_router(system_router, prefix="/system", tags=["System"])
@@ -51,6 +52,7 @@ router.include_router(attachment_router, prefix="/attachments", tags=["Attachmen
 
 # Client Management
 router.include_router(client_router, prefix="/clients", tags=["Clients"])
+router.include_router(quotation_router, prefix="/quotations", tags=["Quotations"])
 
 # Layouts
 router.include_router(layout_router, prefix="/layouts", tags=["Layouts"])
