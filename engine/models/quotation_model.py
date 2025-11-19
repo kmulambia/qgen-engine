@@ -59,6 +59,14 @@ class QuotationModel(BaseModel):
         comment="Array of quotation line items with details"
     )
 
+    # Currency
+    currency: Mapped[str] = mapped_column(
+        String(3),
+        nullable=False,
+        default="USD",
+        comment="Currency code (e.g., USD, EUR, GBP)"
+    )
+
     # Financial Calculations
     subtotal: Mapped[Decimal] = mapped_column(
         Numeric(15, 2),
