@@ -1,0 +1,50 @@
+name: q-gen
+services:
+  postgres:
+    container_name: q-gen-postgres
+    image: postgres:latest
+    ports:
+        - "5432:5432"
+    environment:
+        POSTGRES_USER: ${POSTGRES_USER}
+        POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+        POSTGRES_DB : ${POSTGRES_DB}
+    volumes:
+        - q-gen-postgres-data:/data/data
+    networks:
+        - q-gen
+  redis:
+    container_name: q-gen-redis
+    image: redis/redis-stack:latest
+    ports:
+        - "6379:6379"
+    environment:
+        REDIS_PASSWORD: ${REDIS_PASSWORD}
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
+    volumes:
+        - q-gen-redis-data:/data/data
+    networks:
+        - q-gen
+
+  rabbitmq:
+    container_name: q-gen-rabbitmq
+    image: rabbitmq:management
+    ports:
+        - "5672:5672"
+        - "15672:15672"
+    volumes:
+        - q-gen-rabbitmq-data:/data/rabbitmq
+    environment:
+        RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+        RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    networks:
+        - q-gen
+
+volumes:
+  q-gen-rabbitmq-data:
+  q-gen-postgres-data:
+  q-gen-redis-data:
+
+networks:
+  q-gen:
+    driver: bridge

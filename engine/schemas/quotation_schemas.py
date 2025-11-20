@@ -1,7 +1,7 @@
 from typing import Optional, List
 from uuid import UUID
 from decimal import Decimal
-from datetime import date
+from datetime import date, datetime
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from engine.schemas.base_schemas import BaseSchema, BaseUpdateSchema, BaseCreateSchema
 from engine.schemas.client_schemas import ClientSchema
@@ -151,9 +151,28 @@ class QuotationSchema(BaseSchema):
     terms_conditions: Optional[str] = None
     quotation_status: str
     
+    # Email and Access Tracking
+    sent_at: Optional[datetime] = Field(None, description="Timestamp when quotation was sent to client")
+    access_token: Optional[str] = Field(None, description="Secure token for public access")
+    token_expires_at: Optional[datetime] = Field(None, description="Expiration timestamp for access token")
+    
     # Relationships
     client: Optional[ClientSchema] = Field(None, description="Client details")
     layout: Optional[LayoutSchema] = Field(None, description="Layout details")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class QuotationApproveSchema(BaseModel):
+    """Schema for approving a quotation"""
+    message: Optional[str] = Field(None, description="Optional message to include in email")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class QuotationResendSchema(BaseModel):
+    """Schema for resending a quotation"""
+    message: Optional[str] = Field(None, description="Optional message to include in email")
 
     model_config = ConfigDict(from_attributes=True)
 

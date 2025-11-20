@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quotation {{quotation.quotation_number}} - {{system_name}}</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <header style="background-color: #2c5282; color: white; padding: 20px; text-align: center;">
+        <h1 style="margin: 0;">Quotation {{quotation.quotation_number}}</h1>
+    </header>
+    
+    <main style="padding: 20px;">
+        <p>Dear {% if user.first_name %}{{user.first_name}}{% else %}Valued Client{% endif %},</p>
+        
+        <p>We are pleased to present you with the following quotation:</p>
+        
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0; border: 1px solid #e9ecef;">
+            <h2 style="margin-top: 0; color: #2c5282;">Quotation Details</h2>
+            <p style="margin: 5px 0;"><strong>Quotation Number:</strong> {{quotation.quotation_number}}</p>
+            <p style="margin: 5px 0;"><strong>Title:</strong> {{quotation.title}}</p>
+            <p style="margin: 5px 0;"><strong>Total Amount:</strong> {{quotation.currency}} {{quotation.total}}</p>
+            <p style="margin: 5px 0;"><strong>Valid Until:</strong> {{quotation.valid_until}}</p>
+        </div>
+        
+        <div style="background-color: #e8f5e9; padding: 15px; border-radius: 5px; margin: 20px 0; text-align: center;">
+            <p style="margin: 10px 0; font-size: 16px; font-weight: bold; color: #2e7d32;">View Full Quotation</p>
+            <a href="{{quotation.view_url}}" style="display: inline-block; background-color: #2c5282; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; margin: 10px 0;">View Quotation</a>
+            <p style="margin: 10px 0; font-size: 12px; color: #666;">Click the button above to view the complete quotation details, including all line items, terms, and conditions.</p>
+        </div>
+        
+        <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #ffc107;">
+            <p style="margin: 5px 0;"><strong>Important:</strong> This quotation is valid until {{quotation.valid_until}}. Please review and respond before the expiration date.</p>
+        </div>
+        
+        <p>If you have any questions or need clarification on any aspect of this quotation, please don't hesitate to contact our support team at <a href="mailto:{{support_email}}" style="color: #0066cc;">{{support_email}}</a>.</p>
+        
+        <p>We look forward to working with you.</p>
+        
+        <p>Best regards,<br>The {{system_name}} Team</p>
+    </main>
+
+    {{footer}}
+    
+</body>
+</html>
+<style>
+    h2 {
+        font-size: 1.2em;
+        margin-bottom: 10px;
+    }
+    a {
+        transition: background-color 0.3s ease;
+    }
+    a:hover {
+        background-color: #1a3d5c !important;
+    }
+</style>
+

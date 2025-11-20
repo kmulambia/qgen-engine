@@ -1,12 +1,14 @@
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
-from typing import Optional
+from typing import Optional, Tuple
+from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from engine.models.quotation_model import QuotationModel
 from engine.repositories.quotation_repository import QuotationRepository
 from engine.services.base_service import BaseService
 from engine.schemas.quotation_schemas import calculate_quotation_totals, QuotationItemSchema
 from engine.schemas.token_schemas import TokenData
+from engine.utils.jwt_util import JWTUtil
 
 
 class QuotationService(BaseService[QuotationModel]):
@@ -100,13 +102,22 @@ class QuotationService(BaseService[QuotationModel]):
     async def update(
         self,
         db_conn: AsyncSession,
-        id: str,
-        update_data: dict,
+        uid: UUID,
+        data: QuotationModel,
         token_data: Optional[TokenData] = None
-    ) -> QuotationModel:
+    ) -> Optional[QuotationModel]:
         """
         Update a quotation and recalculate totals if items or percentages changed.
         """
+        # Convert model to dict for processing
+        update_data = data.to_dict()
+        
+        # Remove None values and internal attributes
+        update_data = {
+            k: v for k, v in update_data.items()
+            if v is not None and not k.startswith('_')
+        }
+        
         # Check if we need to recalculate
         needs_recalculation = any(
             key in update_data for key in [
@@ -116,7 +127,9 @@ class QuotationService(BaseService[QuotationModel]):
         
         if needs_recalculation:
             # Get current quotation to merge data
-            current_quotation = await self.get_by_id(db_conn, id, token_data)
+            current_quotation = await self.get_by_id(db_conn, uid)
+            if not current_quotation:
+                return None
             current_dict = current_quotation.to_dict()
             
             # Merge update data with current data
@@ -125,13 +138,169 @@ class QuotationService(BaseService[QuotationModel]):
             # Recalculate totals
             merged_data = self._calculate_and_update_totals(merged_data)
             
-            # Update only the changed fields
-            update_data = {
+            # Update only the changed fields plus calculated fields
+            # Filter out None values and internal attributes
+            final_update_data = {
                 k: v for k, v in merged_data.items()
-                if k in update_data or k in [
-                    'subtotal', 'discount_amount', 'tax_amount', 'total'
-                ]
+                if (k in update_data or k in ['subtotal', 'discount_amount', 'tax_amount', 'total']) 
+                and v is not None 
+                and not k.startswith('_')
             }
+            
+            # Create a new model instance with updated data for the parent update
+            updated_model = QuotationModel(**final_update_data)
+        else:
+            # No recalculation needed, use the original data
+            updated_model = data
         
         # Call parent update method
-        return await super().update(db_conn, id, update_data, token_data)
+        return await super().update(db_conn, uid, updated_model, token_data)
+    
+    def _get_client_email(self, client) -> Optional[str]:
+        """
+        Get client email with fallback logic.
+        Prefers contact_person_email, falls back to email.
+        
+        Args:
+            client: ClientModel instance
+            
+        Returns:
+            Email address or None if neither is available
+        """
+        if client.contact_person_email:
+            return client.contact_person_email
+        return client.email if client.email else None
+    
+    def _generate_access_token(self, quotation_id: UUID) -> Tuple[str, datetime]:
+        """
+        Generate a secure JWT token for public quotation access.
+        
+        Args:
+            quotation_id: UUID of the quotation
+            
+        Returns:
+            Tuple of (token_string, expiration_datetime)
+        """
+        token_data = {
+            "quotation_id": str(quotation_id),
+            "type": "quotation_access"
+        }
+        # Token expires in 30 days
+        expires_delta = timedelta(days=30)
+        token, expires_at = JWTUtil.encode_token(token_data, expires_delta)
+        return token, expires_at
+    
+    async def approve_quotation(
+        self,
+        db_conn: AsyncSession,
+        quotation_id: str,
+        token_data: Optional[TokenData] = None
+    ) -> QuotationModel:
+        """
+        Approve and send a quotation to the client.
+        
+        Args:
+            db_conn: Database connection
+            quotation_id: UUID of the quotation
+            token_data: Optional token data for auditing
+            
+        Returns:
+            Updated QuotationModel with sent status and token
+            
+        Raises:
+            Exception: If quotation not found, invalid status, or no client email
+        """
+        # Get quotation with client relationship
+        quotation = await self.get_by_id(db_conn, UUID(quotation_id))
+        if not quotation:
+            raise Exception("quotation_not_found")
+        
+        # Validate quotation status
+        if quotation.quotation_status not in ["draft", "sent"]:
+            raise Exception("invalid_quotation_status")
+        
+        # Get client email
+        if not quotation.client:
+            raise Exception("client_not_found")
+        
+        client_email = self._get_client_email(quotation.client)
+        if not client_email:
+            raise Exception("client_email_not_found")
+        
+        # Generate access token
+        access_token, token_expires_at = self._generate_access_token(quotation.id)
+        
+        # Update quotation - create model instance with update data
+        # Get current quotation data and merge with updates
+        current_dict = quotation.to_dict()
+        current_dict.update({
+            "quotation_status": "sent",
+            "sent_at": datetime.now(timezone.utc),
+            "access_token": access_token,
+            "token_expires_at": token_expires_at
+        })
+        update_model = QuotationModel(**current_dict)
+        
+        updated_quotation = await self.update(db_conn, quotation.id, update_model, token_data)
+        
+        # Reload with relationships
+        return await self.get_by_id(db_conn, UUID(quotation_id))
+    
+    async def resend_quotation(
+        self,
+        db_conn: AsyncSession,
+        quotation_id: str,
+        token_data: Optional[TokenData] = None
+    ) -> QuotationModel:
+        """
+        Resend a quotation to the client.
+        Regenerates token if expired or missing, updates sent_at timestamp.
+        
+        Args:
+            db_conn: Database connection
+            quotation_id: UUID of the quotation
+            token_data: Optional token data for auditing
+            
+        Returns:
+            Updated QuotationModel
+            
+        Raises:
+            Exception: If quotation not found or no client email
+        """
+        # Get quotation with client relationship
+        quotation = await self.get_by_id(db_conn, UUID(quotation_id))
+        if not quotation:
+            raise Exception("quotation_not_found")
+        
+        # Get client email
+        if not quotation.client:
+            raise Exception("client_not_found")
+        
+        client_email = self._get_client_email(quotation.client)
+        if not client_email:
+            raise Exception("client_email_not_found")
+        
+        # Check if token needs regeneration
+        needs_new_token = False
+        if not quotation.access_token or not quotation.token_expires_at:
+            needs_new_token = True
+        elif quotation.token_expires_at < datetime.now(timezone.utc):
+            needs_new_token = True
+        
+        # Get current quotation data and merge with updates
+        current_dict = quotation.to_dict()
+        current_dict.update({
+            "sent_at": datetime.now(timezone.utc)
+        })
+        
+        if needs_new_token:
+            access_token, token_expires_at = self._generate_access_token(quotation.id)
+            current_dict["access_token"] = access_token
+            current_dict["token_expires_at"] = token_expires_at
+        
+        # Update quotation (status remains unchanged if already sent)
+        update_model = QuotationModel(**current_dict)
+        updated_quotation = await self.update(db_conn, quotation.id, update_model, token_data)
+        
+        # Reload with relationships
+        return await self.get_by_id(db_conn, UUID(quotation_id))

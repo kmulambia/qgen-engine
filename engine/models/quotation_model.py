@@ -1,8 +1,8 @@
 from typing import Optional, TYPE_CHECKING
 from uuid import UUID
 from decimal import Decimal
-from datetime import date
-from sqlalchemy import String, Text, ForeignKey, JSON, Index, Numeric, Date
+from datetime import date, datetime
+from sqlalchemy import String, Text, ForeignKey, JSON, Index, Numeric, Date, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from engine.models.base_model import BaseModel
 
@@ -144,6 +144,26 @@ class QuotationModel(BaseModel):
         comment="Status: draft, sent, approved, rejected, expired"
     )
 
+    # Email and Access Tracking
+    sent_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Timestamp when quotation was sent to client"
+    )
+
+    access_token: Mapped[Optional[str]] = mapped_column(
+        String(512),
+        nullable=True,
+        index=True,
+        comment="Secure token for public access to quotation"
+    )
+
+    token_expires_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Expiration timestamp for access token"
+    )
+
     # Relationships
     client: Mapped["ClientModel"] = relationship(
         "ClientModel",
@@ -162,6 +182,7 @@ class QuotationModel(BaseModel):
         Index("idx_quotation_client_id", "client_id"),
         Index("idx_quotation_status", "quotation_status"),
         Index("idx_quotation_layout_id", "layout_id"),
+        Index("idx_quotation_access_token", "access_token"),
     )
 
  

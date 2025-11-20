@@ -1,0 +1,54 @@
+# System
+APP_ID=MISEG1
+NAME='Q Gen'
+MODE=production
+VERSION=2.0.1
+DESCRIPTION='Monioring and Evaluation System for FORNERWA'
+EMAIL=qgen.systemsandbox.online
+PHONE=
+KEY=SAKHS213HSIUO5545ASPSOA232SOJA
+TOKEN_EXPIRE_MINUTES = 60
+ENVIRONMENT=prod
+FILE_PATH=files
+CHUNK_SIZE=10000
+# Website Configuration
+WEBSITE_URL=https://qgen.systemsandbox.online
+WEBSITE_PRIVACY_URL=https://qgen.systemsandbox.online/privacy
+WEBSITE_TERMS_URL=https://qgen.systemsandbox.online/terms
+# API Server
+PORT=8000
+HOST=localhost
+RATE_LIMIT_REQUESTS=50
+RATE_LIMIT_WINDOW=60
+
+# Database Configuration
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_USER=qgen_engine
+POSTGRES_PASSWORD=qgen_engine
+POSTGRES_DB=qgen_engine
+
+# Redis Configuration
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=qgen_engine
+REDIS_DB=0
+REDIS_POOL_SIZE=5
+
+# RabbitMQ Configuration
+RABBITMQ_HOST=localhost
+RABBITMQ_PORT=5672
+RABBITMQ_MANAGEMENT_PORT=15672
+RABBITMQ_DEFAULT_USER=qgen_engine
+RABBITMQ_DEFAULT_PASS=qgen_engine
+
+# AMQ (Message Queue) Configuration
+# AMQ_URI can be constructed from RABBITMQ_* variables if not provided
+# Format: amqp://user:password@host:port/
+AMQ_URI=amqp://qgen_engine:qgen_engine@localhost:5672/
+AMQ_QUEUE_NAME=engine
+AMQ_EMAIL_SERVICE=email
+
+# Application Configuration
+ENVIRONMENT=development
+DEBUG=true

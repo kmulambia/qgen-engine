@@ -26,13 +26,25 @@ async def send_email_message(message: Dict[str, Any]) -> bool | None:
     """
     success = False  # noqa
     try:
-        queue_name = config.require_variable("AMQ_QUEUE_NAME")
-        channel_name = config.require_variable("AMQ_EMAIL_SERVICE")
+        # Get queue name with default
+        queue_name = config.get_variable("AMQ_QUEUE_NAME", "engine")
+        channel_name = config.get_variable("AMQ_EMAIL_SERVICE", "email")
+        
+        # Get AMQ URI, construct from RABBITMQ_* vars if not provided
+        amq_uri = config.get_variable("AMQ_URI")
+        if not amq_uri:
+            # Construct from RABBITMQ configuration
+            rabbitmq_host = config.get_variable("RABBITMQ_HOST", "localhost")
+            rabbitmq_port = config.get_variable("RABBITMQ_PORT", "5672")
+            rabbitmq_user = config.get_variable("RABBITMQ_DEFAULT_USER", "guest")
+            rabbitmq_pass = config.get_variable("RABBITMQ_DEFAULT_PASS", "guest")
+            amq_uri = f"amqp://{rabbitmq_user}:{rabbitmq_pass}@{rabbitmq_host}:{rabbitmq_port}/"
+        
         logger.info(f"Attempting to send email message to queue: {queue_name}")
 
         # Create AMQ middleware instance
         amq = AMQMiddleware(
-            url=config.get_variable("AMQ_URI"),
+            url=amq_uri,
             queue_name=queue_name,
             channel_name=channel_name,
             queue_config=QUEUE_CONFIG
