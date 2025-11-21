@@ -1,10 +1,21 @@
 from typing import Optional
+import re
 import httpx
 from mailer.transports.base_transport import BaseTransport
 from engine.utils.config_util import load_config
 from mailer.dependencies.logger import logger
 
 config = load_config()
+
+# Email validation regex pattern
+EMAIL_PATTERN = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+
+
+def is_valid_email(email: Optional[str]) -> bool:
+    """Check if an email address is valid."""
+    if not email:
+        return False
+    return bool(EMAIL_PATTERN.match(email.strip()))
 
 
 class PostmarkTransport(BaseTransport):
@@ -61,21 +72,87 @@ class PostmarkTransport(BaseTransport):
         """
         try:
             logger.info("Attempting to send email to: %s with subject: %s", to_email, subject)
+            
+            # Validate and use from_email, fallback to default if invalid
+            sender_email = from_email or self.from_email
+            if not is_valid_email(sender_email):
+                logger.warning(
+                    "Invalid 'From' email address '%s', falling back to default: %s",
+                    sender_email,
+                    self.from_email
+                )
+                sender_email = self.from_email
+            
+            # Build payload matching Postmark API format exactly
+            # Postmark requires at least one of TextBody or HtmlBody
             payload = {
-                "From": from_email or self.from_email,
+                "From": sender_email,
                 "To": to_email,
                 "Subject": subject,
-                "TextBody": content,
-                "HtmlBody": html_content,
                 "MessageStream": "outbound"
             }
             
+            # Add TextBody if content is provided (non-empty string)
+            if content and content.strip():
+                payload["TextBody"] = content
+            
+            # Add HtmlBody if html_content is provided (non-empty string)
+            if html_content and html_content.strip():
+                payload["HtmlBody"] = html_content
+            
+            # Ensure at least one body is present (Postmark requirement)
+            if "TextBody" not in payload and "HtmlBody" not in payload:
+                logger.error("Both TextBody and HtmlBody are missing. At least one is required by Postmark.")
+                return False
+            
+            # Log payload for debugging (without sensitive data)
+            logger.debug("Postmark payload: From=%s, To=%s, Subject=%s, HasTextBody=%s, HasHtmlBody=%s",
+                       payload["From"], payload["To"], payload["Subject"],
+                       "TextBody" in payload, "HtmlBody" in payload)
+            
             response = await self.client.post(self.api_url, json=payload)
+            
+            # Log response details for debugging
+            if response.status_code != 200:
+                try:
+                    error_data = response.json()
+                    logger.error(
+                        "Postmark API error (status %d) sending email to %s: %s",
+                        response.status_code,
+                        to_email,
+                        error_data
+                    )
+                except Exception:
+                    logger.error(
+                        "Postmark API error (status %d) sending email to %s: %s",
+                        response.status_code,
+                        to_email,
+                        response.text
+                    )
+            
             response.raise_for_status()
             
             logger.info("Successfully sent email to: %s", to_email)
             return True
             
+        except httpx.HTTPStatusError as e:
+            # Handle HTTP status errors (4xx, 5xx)
+            try:
+                error_data = e.response.json()
+                logger.error(
+                    "HTTP error sending email via Postmark to %s (status %d): %s",
+                    to_email,
+                    e.response.status_code,
+                    error_data
+                )
+            except Exception:
+                logger.error(
+                    "HTTP error sending email via Postmark to %s (status %d): %s",
+                    to_email,
+                    e.response.status_code,
+                    e.response.text
+                )
+            return False
         except httpx.HTTPError as e:
             logger.error("HTTP error sending email via Postmark to %s: %s", to_email, str(e))
             return False

@@ -36,7 +36,7 @@ services:
         - q-gen-rabbitmq-data:/data/rabbitmq
     environment:
         RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
-        RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+        RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
     networks:
         - q-gen
 

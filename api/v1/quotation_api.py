@@ -80,6 +80,13 @@ class QuotationAPI(BaseAPI[QuotationModel, QuotationCreateSchema, QuotationUpdat
                 website_url = config.get_variable("WEBSITE_URL", "http://localhost:3000")
                 view_url = f"{website_url}/quotations/{quotation.id}?token={quotation.access_token}"
                 
+                # Print link to terminal for testing
+                print("\n" + "="*80)
+                print("QUOTATION VIEW LINK (for testing):")
+                print(view_url)
+                print("="*80 + "\n")
+                logger.info(f"Quotation view link: {view_url}")
+                
                 # Prepare email message
                 client_name = client.contact_person_name or client.company_name or "Valued Client"
                 first_name = client.contact_person_name.split()[0] if client.contact_person_name and " " in client.contact_person_name else client_name
@@ -170,6 +177,13 @@ class QuotationAPI(BaseAPI[QuotationModel, QuotationCreateSchema, QuotationUpdat
                 website_url = config.get_variable("WEBSITE_URL", "http://localhost:3000")
                 view_url = f"{website_url}/quotations/{quotation.id}?token={quotation.access_token}"
                 
+                # Print link to terminal for testing
+                print("\n" + "="*80)
+                print("QUOTATION VIEW LINK (for testing):")
+                print(view_url)
+                print("="*80 + "\n")
+                logger.info(f"Quotation view link: {view_url}")
+                
                 # Prepare email message
                 client_name = client.contact_person_name or client.company_name or "Valued Client"
                 first_name = client.contact_person_name.split()[0] if client.contact_person_name and " " in client.contact_person_name else client_name
@@ -248,8 +262,8 @@ class QuotationAPI(BaseAPI[QuotationModel, QuotationCreateSchema, QuotationUpdat
                     logger.error(f"Quotation ID not found in token, Request: {request.method} {request.url}")
                     raise ErrorHandling.unauthorized("Invalid access token")
                 
-                # Get quotation
-                quotation = await self.service.get_by_id(db_conn, quotation_id, None)
+                # Get quotation (convert string ID to UUID)
+                quotation = await self.service.get_by_id(db_conn, UUID(quotation_id))
                 if not quotation:
                     logger.error(f"Quotation not found: {quotation_id}, Request: {request.method} {request.url}")
                     raise ErrorHandling.not_found("Quotation not found")

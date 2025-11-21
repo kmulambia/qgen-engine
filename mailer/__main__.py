@@ -7,8 +7,9 @@
 import asyncio
 import argparse
 import json
+import re
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 import aio_pika
 
@@ -19,6 +20,16 @@ from mailer.transports.postmark_transport import PostmarkTransport
 from mailer.dependencies.logger import logger
 from mailer.dependencies.amq import get_amq
 from jinja2 import Template
+
+# Email validation regex pattern
+EMAIL_PATTERN = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+
+
+def is_valid_email(email: Optional[str]) -> bool:
+    """Check if an email address is valid."""
+    if not email:
+        return False
+    return bool(EMAIL_PATTERN.match(email.strip()))
 
 config = load_config()
 
@@ -125,7 +136,7 @@ async def process_email_message(message: Dict) -> None:
     """
     transport = None
     try:
-        transport_name = message.get("transport", "smtp")
+        transport_name = message.get("transport", "postmark")
         if not transport_name:
             logger.error("Transport not specified in message")
             return
@@ -157,6 +168,17 @@ async def process_email_message(message: Dict) -> None:
         # Get email from template data
         to_email = template_info["data"]["user"]["email"]
         subject = template_info['data']['subject']
+        
+        # Validate and get from_email from template, or use None to let transport use default
+        support_email = template_info["data"].get("support_email")
+        from_email = None
+        if support_email and is_valid_email(support_email):
+            from_email = support_email
+        elif support_email:
+            logger.warning(
+                "Invalid support_email '%s' in template data, transport will use default sender",
+                support_email
+            )
 
         # Send email
         await transport.connect()
@@ -165,7 +187,7 @@ async def process_email_message(message: Dict) -> None:
             subject=subject,
             content="Please check your email for the HTML version of this message.",
             html_content=html_content,
-            from_email=template_info["data"].get("support_email")
+            from_email=from_email
         )
 
         if success:
@@ -216,7 +238,7 @@ async def start_consumer() -> None:
                             logger.info(f"[{idx}] Processing message for recipient: {to_email}")
 
                             # Get transport or use default
-                            transport_name = single_message_data.get("transport", "smtp")
+                            transport_name = single_message_data.get("transport", "postmark")
                             if transport_name not in TRANSPORTS:
                                 logger.warning(f"[{idx}] Invalid transport '{transport_name}', skipping.")
                                 continue
@@ -250,7 +272,7 @@ async def start_consumer() -> None:
 
                     logger.info(f"Processing message for recipient: {to_email}")
 
-                    transport_name = message_data.get("transport", "smtp")
+                    transport_name = message_data.get("transport", "postmark")
                     logger.debug(f"Using transport: {transport_name}")
 
                     if transport_name not in TRANSPORTS:
@@ -292,7 +314,7 @@ async def start_consumer() -> None:
 
 async def send_test_email(
         emails: List[str],
-        transport_name: str = "smtp",
+        transport_name: str = "postmark",
         template_name: str = "welcome"
 ) -> None:
     """Send a test email to the specified recipients using the given template."""
@@ -392,7 +414,7 @@ def main():
                         help="RabbitMQ queue name to consume from (default: email_queue)")
     parser.add_argument("--template-dir", default="templates",
                         help="Directory containing email templates (default: templates)")
-    parser.add_argument("--default-transport", default="smtp", choices=list(TRANSPORTS.keys()),
+    parser.add_argument("--default-transport", default="postmark", choices=list(TRANSPORTS.keys()),
                         help="Default email transport to use if not specified in message (default: smtp)")
     parser.add_argument("--debug", action="store_true",
                         help="Enable debug logging (default: False)")

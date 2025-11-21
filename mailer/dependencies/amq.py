@@ -5,7 +5,16 @@ from mailer.dependencies.logger import logger
 config = load_config()
 
 # AMQ Configuration
-AMQ_URI = config.require_variable("AMQ_URI")
+# Get AMQ URI, construct from RABBITMQ_* vars if not provided
+AMQ_URI = config.get_variable("AMQ_URI")
+if not AMQ_URI:
+    # Construct from RABBITMQ configuration
+    rabbitmq_host = config.get_variable("RABBITMQ_HOST", "localhost")
+    rabbitmq_port = config.get_variable("RABBITMQ_PORT", "5672")
+    rabbitmq_user = config.get_variable("RABBITMQ_DEFAULT_USER", "guest")
+    rabbitmq_pass = config.get_variable("RABBITMQ_DEFAULT_PASS", "guest")
+    AMQ_URI = f"amqp://{rabbitmq_user}:{rabbitmq_pass}@{rabbitmq_host}:{rabbitmq_port}/"
+
 AMQ_QUEUE_NAME = config.require_variable("AMQ_QUEUE_NAME")
 AMQ_EMAIL_SERVICE = config.require_variable("AMQ_EMAIL_SERVICE")
 
