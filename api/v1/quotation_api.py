@@ -62,62 +62,62 @@ class QuotationAPI(BaseAPI[QuotationModel, QuotationCreateSchema, QuotationUpdat
                     token_data=token_data
                 )
                 
-                # Load relationships
-                await self._load_relationships_safely(db_conn, quotation)
+                # # Load relationships
+                # await self._load_relationships_safely(db_conn, quotation)
                 
-                # Get client email
-                client = quotation.client
-                if not client:
-                    logger.error(f"Client not found for quotation {quotation_id}")
-                    raise ErrorHandling.not_found("Client not found for quotation")
+                # # Get client email
+                # client = quotation.client
+                # if not client:
+                #     logger.error(f"Client not found for quotation {quotation_id}")
+                #     raise ErrorHandling.not_found("Client not found for quotation")
                 
-                client_email = self.service._get_client_email(client)
-                if not client_email:
-                    logger.error(f"No email found for client {client.id}")
-                    raise ErrorHandling.bad_request("Client email address is required")
+                # client_email = self.service._get_client_email(client)
+                # if not client_email:
+                #     logger.error(f"No email found for client {client.id}")
+                #     raise ErrorHandling.bad_request("Client email address is required")
                 
-                # Get website URL for quotation link
-                website_url = config.get_variable("WEBSITE_URL", "http://localhost:3000")
-                view_url = f"{website_url}/quotations/{quotation.id}?token={quotation.access_token}"
+                # # Get website URL for quotation link
+                # website_url = config.get_variable("WEBSITE_URL", "http://localhost:3000")
+                # view_url = f"{website_url}/quotations/{quotation.id}?token={quotation.access_token}"
                 
-                # Print link to terminal for testing
-                print("\n" + "="*80)
-                print("QUOTATION VIEW LINK (for testing):")
-                print(view_url)
-                print("="*80 + "\n")
-                logger.info(f"Quotation view link: {view_url}")
+                # # Print link to terminal for testing
+                # print("\n" + "="*80)
+                # print("QUOTATION VIEW LINK (for testing):")
+                # print(view_url)
+                # print("="*80 + "\n")
+                # logger.info(f"Quotation view link: {view_url}")
                 
-                # Prepare email message
-                client_name = client.contact_person_name or client.company_name or "Valued Client"
-                first_name = client.contact_person_name.split()[0] if client.contact_person_name and " " in client.contact_person_name else client_name
-                last_name = client.contact_person_name.split(" ", 1)[1] if client.contact_person_name and " " in client.contact_person_name else ""
+                # # Prepare email message
+                # client_name = client.contact_person_name or client.company_name or "Valued Client"
+                # first_name = client.contact_person_name.split()[0] if client.contact_person_name and " " in client.contact_person_name else client_name
+                # last_name = client.contact_person_name.split(" ", 1)[1] if client.contact_person_name and " " in client.contact_person_name else ""
                 
-                email_message = {
-                    "template": {
-                        "name": "quotation_approval",
-                        "data": {
-                            "user": {
-                                "email": client_email,
-                                "first_name": first_name,
-                                "last_name": last_name
-                            },
-                            "quotation": {
-                                "quotation_number": quotation.quotation_number or "N/A",
-                                "title": quotation.title,
-                                "total": str(quotation.total),
-                                "currency": quotation.currency,
-                                "valid_until": quotation.valid_until.strftime("%B %d, %Y") if quotation.valid_until else "",
-                                "view_url": view_url
-                            },
-                            "subject": f"Quotation {quotation.quotation_number or 'N/A'} - {quotation.title}",
-                            "system_name": config.require_variable("NAME"),
-                            "support_email": config.require_variable("EMAIL")
-                        }
-                    }
-                }
+                # email_message = {
+                #     "template": {
+                #         "name": "quotation_approval",
+                #         "data": {
+                #             "user": {
+                #                 "email": client_email,
+                #                 "first_name": first_name,
+                #                 "last_name": last_name
+                #             },
+                #             "quotation": {
+                #                 "quotation_number": quotation.quotation_number or "N/A",
+                #                 "title": quotation.title,
+                #                 "total": str(quotation.total),
+                #                 "currency": quotation.currency,
+                #                 "valid_until": quotation.valid_until.strftime("%B %d, %Y") if quotation.valid_until else "",
+                #                 "view_url": view_url
+                #             },
+                #             "subject": f"Quotation {quotation.quotation_number or 'N/A'} - {quotation.title}",
+                #             "system_name": config.require_variable("NAME"),
+                #             "support_email": config.require_variable("EMAIL")
+                #         }
+                #     }
+                # }
                 
-                # Queue email
-                await send_email_message(email_message)
+                # # Queue email
+                # await send_email_message(email_message)
                 
                 # Return updated quotation
                 return QuotationSchema.model_validate(quotation)
