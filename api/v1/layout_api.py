@@ -1,5 +1,6 @@
 from uuid import UUID
 from fastapi import HTTPException, Depends, Request, status
+from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from api.dependencies.db import get_db
 from api.dependencies.authentication import authentication
@@ -16,6 +17,7 @@ from engine.schemas.layout_schemas import (
 from engine.services.layout_service import LayoutService
 from engine.models.layout_model import LayoutModel
 from engine.schemas.base_schemas import PaginatedResponse
+import os
 
 
 class LayoutAPI(BaseAPI[LayoutModel, LayoutCreateSchema, LayoutUpdateSchema, LayoutSchema]):
@@ -52,6 +54,41 @@ class LayoutAPI(BaseAPI[LayoutModel, LayoutCreateSchema, LayoutUpdateSchema, Lay
                 if isinstance(e, HTTPException):
                     raise e
                 raise ErrorHandling.server_error("Failed to get default layout")
+
+        @self.router.get("/default/logo")
+        @rate_limit()
+        async def get_default_layout_logo(
+            request: Request,
+            db_conn: AsyncSession = Depends(get_db)
+        ):
+            """
+            Get the logo file for the default layout.
+            Returns the logo image file directly for frontend display.
+            """
+            try:
+                layout = await self.service.get_default_layout(db_conn)
+                
+                if not layout:
+                    raise ErrorHandling.not_found("No default layout set")
+
+                if not layout.logo_file:
+                    raise ErrorHandling.not_found("No logo file set for default layout")
+
+                if not os.path.exists(layout.logo_file.full_path):
+                    logger.error(f"Logo file not found on disk: {layout.logo_file.full_path}")
+                    raise ErrorHandling.not_found("Logo file not found on disk")
+
+                return FileResponse(
+                    path=layout.logo_file.full_path,
+                    media_type=layout.logo_file.content_type,
+                    filename=layout.logo_file.original_filename
+                )
+
+            except Exception as e:
+                logger.error(f"Failed to get default layout logo: {str(e)}")
+                if isinstance(e, HTTPException):
+                    raise e
+                raise ErrorHandling.server_error("Failed to get default layout logo")
 
 
 router = LayoutAPI().router
