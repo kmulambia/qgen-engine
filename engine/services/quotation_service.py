@@ -197,7 +197,7 @@ class QuotationService(BaseService[QuotationModel]):
         token_data: Optional[TokenData] = None
     ) -> QuotationModel:
         """
-        Approve and send a quotation to the client.
+        Approve a quotation (status set to approved).
         
         Args:
             db_conn: Database connection
@@ -205,7 +205,7 @@ class QuotationService(BaseService[QuotationModel]):
             token_data: Optional token data for auditing
             
         Returns:
-            Updated QuotationModel with sent status and token
+            Updated QuotationModel with approved status and token
             
         Raises:
             Exception: If quotation not found, invalid status, or no client email
@@ -216,7 +216,7 @@ class QuotationService(BaseService[QuotationModel]):
             raise Exception("quotation_not_found")
         
         # Validate quotation status
-        if quotation.quotation_status not in ["draft", "sent"]:
+        if quotation.quotation_status not in ["draft", "approved"]:
             raise Exception("invalid_quotation_status")
         
         # Get client email
@@ -234,7 +234,7 @@ class QuotationService(BaseService[QuotationModel]):
         # Get current quotation data and merge with updates
         current_dict = quotation.to_dict()
         current_dict.update({
-            "quotation_status": "sent",
+            "quotation_status": "approved",
             "sent_at": datetime.now(timezone.utc),
             "access_token": access_token,
             "token_expires_at": token_expires_at

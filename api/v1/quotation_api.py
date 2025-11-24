@@ -53,7 +53,7 @@ class QuotationAPI(BaseAPI[QuotationModel, QuotationCreateSchema, QuotationUpdat
             db_conn: AsyncSession = Depends(get_db),
             token_data: TokenData = Depends(authentication),
         ):
-            """Approve and send quotation to client via email"""
+            """Approve quotation (sets status to approved)"""
             try:
                 # Approve quotation (updates status, generates token, sets sent_at)
                 quotation = await self.service.approve_quotation(
