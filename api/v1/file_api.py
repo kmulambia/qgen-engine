@@ -1,7 +1,7 @@
 from uuid import UUID
 from typing import List
 from fastapi import UploadFile, File, HTTPException, Depends, Request, status
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 import asyncio
 from api.dependencies.db import get_db
@@ -23,6 +23,41 @@ import os
 
 config = load_config()
 MODE = config.get_variable("MODE", "development")
+
+
+def get_cors_headers(request: Request) -> dict:
+    """Get CORS headers based on request origin and configuration"""
+    origin = request.headers.get("origin")
+    allowed_origins = config.get_variable("CORS_ORIGINS", "*").split(",")
+    
+    # Check if origin is allowed
+    if "*" in allowed_origins:
+        allow_origin = "*"
+        allow_credentials = "false"  # Cannot use credentials with wildcard origin
+    elif origin and origin.strip() in [o.strip() for o in allowed_origins]:
+        allow_origin = origin
+        allow_credentials = "true"
+    elif origin:
+        # Origin provided but not in allowed list - use the origin anyway (for development)
+        allow_origin = origin
+        allow_credentials = "true"
+    else:
+        # If no origin or not in allowed list, use first allowed origin or *
+        allow_origin = allowed_origins[0].strip() if allowed_origins else "*"
+        allow_credentials = "false" if allow_origin == "*" else "true"
+    
+    headers = {
+        "Access-Control-Allow-Origin": allow_origin,
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
+        "Access-Control-Allow-Headers": "Authorization, Content-Type, Accept",
+        "Access-Control-Max-Age": "86400",  # 24 hours
+    }
+    
+    # Only include credentials header if not using wildcard
+    if allow_credentials == "true":
+        headers["Access-Control-Allow-Credentials"] = "true"
+    
+    return headers
 
 
 class FileAPI(BaseAPI[FileModel, FileCreateSchema, FileUpdateSchema, FileSchema]):
@@ -166,6 +201,15 @@ class FileAPI(BaseAPI[FileModel, FileCreateSchema, FileUpdateSchema, FileSchema]
                     raise e
                 raise ErrorHandling.server_error("Failed to process file upload")
 
+        @self.router.options("/serve/{filename}")
+        async def serve_file_options(
+                request: Request,
+                filename: str,
+        ):
+            """Handle OPTIONS preflight request for file serving"""
+            cors_headers = get_cors_headers(request)
+            return Response(status_code=204, headers=cors_headers)
+
         @self.router.get("/serve/{filename}")
         async def serve_file(
                 request: Request,
@@ -299,17 +343,23 @@ class FileAPI(BaseAPI[FileModel, FileCreateSchema, FileUpdateSchema, FileSchema]
                 # Get file size for Content-Length header
                 file_size = os.path.getsize(file_path)
                 
-                # Create response with explicit headers to avoid ORB blocking
+                # Get CORS headers
+                cors_headers = get_cors_headers(request)
+                
+                # Create response with explicit headers to avoid ORB blocking and CORS issues
+                response_headers = {
+                    "Content-Disposition": f'inline; filename="{file.original_filename}"',
+                    "Content-Length": str(file_size),
+                    "Accept-Ranges": "bytes",
+                    "X-Content-Type-Options": "nosniff",
+                    "Cache-Control": "public, max-age=3600",
+                    **cors_headers,  # Add CORS headers
+                }
+                
                 response = StreamingResponse(
                     file_stream(),
                     media_type=content_type,
-                    headers={
-                        "Content-Disposition": f'inline; filename="{file.original_filename}"',
-                        "Content-Length": str(file_size),
-                        "Accept-Ranges": "bytes",
-                        "X-Content-Type-Options": "nosniff",
-                        "Cache-Control": "public, max-age=3600",
-                    }
+                    headers=response_headers
                 )
                 
                 logger.debug(f"[FILE_SERVE] Returning StreamingResponse with headers: {dict(response.headers)}")
@@ -320,6 +370,15 @@ class FileAPI(BaseAPI[FileModel, FileCreateSchema, FileUpdateSchema, FileSchema]
             except Exception as e:
                 logger.error(f"[FILE_SERVE] Unexpected error serving file '{filename}': {str(e)}", exc_info=True)
                 raise ErrorHandling.server_error("Failed to serve file")
+
+        @self.router.options("/{uid}/download")
+        async def download_file_options(
+                request: Request,
+                uid: UUID,
+        ):
+            """Handle OPTIONS preflight request for file download"""
+            cors_headers = get_cors_headers(request)
+            return Response(status_code=204, headers=cors_headers)
 
         @self.router.get("/{uid}/download")
         @rate_limit()
@@ -450,18 +509,24 @@ class FileAPI(BaseAPI[FileModel, FileCreateSchema, FileUpdateSchema, FileSchema]
                 # Get file size for Content-Length header
                 file_size = os.path.getsize(file_path)
                 
-                # Create response with explicit headers to avoid ORB blocking
+                # Get CORS headers
+                cors_headers = get_cors_headers(request)
+                
+                # Create response with explicit headers to avoid ORB blocking and CORS issues
                 # Use attachment disposition for download endpoint
+                response_headers = {
+                    "Content-Disposition": f'attachment; filename="{file.original_filename or file.filename}"',
+                    "Content-Length": str(file_size),
+                    "Accept-Ranges": "bytes",
+                    "X-Content-Type-Options": "nosniff",
+                    "Cache-Control": "private, no-cache",
+                    **cors_headers,  # Add CORS headers
+                }
+                
                 response = StreamingResponse(
                     file_stream(),
                     media_type=content_type,
-                    headers={
-                        "Content-Disposition": f'attachment; filename="{file.original_filename or file.filename}"',
-                        "Content-Length": str(file_size),
-                        "Accept-Ranges": "bytes",
-                        "X-Content-Type-Options": "nosniff",
-                        "Cache-Control": "private, no-cache",
-                    }
+                    headers=response_headers
                 )
                 
                 logger.debug(f"[FILE_DOWNLOAD] Returning StreamingResponse with headers: {dict(response.headers)}")
