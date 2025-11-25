@@ -1,31 +1,79 @@
 import os
+import logging
 from typing import List, Dict, Optional
 from pathlib import Path
 from engine.schemas.file_schemas import FileMetadata
 from engine.utils.config_util import load_config
 from engine.utils.generators_util import generate_timestamp_string
+from engine.utils.logger_util import get_logger
+
+# Setup logger for file utils with proper configuration
+logger = get_logger("file_utils", log_path="logs/file_utils.log", level=logging.DEBUG)
 
 
 def ensure_path(path: str) -> str:
     """Ensure the path exists and return it"""
-    Path(path).mkdir(parents=True, exist_ok=True)
-    return path
+    logger.debug(f"[FILE_UTILS] ensure_path called with: {path}")
+    try:
+        Path(path).mkdir(parents=True, exist_ok=True)
+        path_exists = os.path.exists(path)
+        is_dir = os.path.isdir(path)
+        is_writable = os.access(path, os.W_OK) if path_exists else False
+        logger.debug(f"[FILE_UTILS] Path ensured - exists: {path_exists}, is_dir: {is_dir}, writable: {is_writable}")
+        return path
+    except Exception as e:
+        logger.error(f"[FILE_UTILS] Failed to ensure path '{path}': {str(e)}", exc_info=True)
+        raise
 
 
+logger.debug("[FILE_UTILS] Initializing BASE_PATH configuration")
 config = load_config()
 _file_path = config.get_variable("FILE_PATH", "files")
+logger.debug(f"[FILE_UTILS] FILE_PATH from config: '{_file_path}' (type: {type(_file_path).__name__})")
 
 # Normalize BASE_PATH to absolute path
 # If relative, resolve relative to current working directory
 # If absolute, use as-is
 if os.path.isabs(_file_path):
     BASE_PATH = _file_path
+    logger.debug(f"[FILE_UTILS] FILE_PATH is absolute, using as-is: {BASE_PATH}")
 else:
     # Resolve relative to current working directory
+    cwd = os.getcwd()
+    logger.debug(f"[FILE_UTILS] FILE_PATH is relative, resolving against CWD: {cwd}")
     BASE_PATH = os.path.abspath(os.path.normpath(_file_path))
+    logger.debug(f"[FILE_UTILS] Resolved BASE_PATH: {BASE_PATH}")
+
+logger.info(f"[FILE_UTILS] BASE_PATH initialized to: {BASE_PATH}")
 
 # Ensure BASE_PATH directory exists
-ensure_path(BASE_PATH)
+logger.debug(f"[FILE_UTILS] Ensuring BASE_PATH directory exists: {BASE_PATH}")
+try:
+    ensure_path(BASE_PATH)
+    base_path_exists = os.path.exists(BASE_PATH)
+    base_path_is_dir = os.path.isdir(BASE_PATH) if base_path_exists else False
+    base_path_readable = os.access(BASE_PATH, os.R_OK) if base_path_exists else False
+    base_path_writable = os.access(BASE_PATH, os.W_OK) if base_path_exists else False
+    
+    logger.info(
+        f"[FILE_UTILS] BASE_PATH directory status - "
+        f"exists: {base_path_exists}, "
+        f"is_dir: {base_path_is_dir}, "
+        f"readable: {base_path_readable}, "
+        f"writable: {base_path_writable}"
+    )
+    
+    if not base_path_exists:
+        logger.warning(f"[FILE_UTILS] BASE_PATH directory does not exist: {BASE_PATH}")
+    if base_path_exists and not base_path_is_dir:
+        logger.error(f"[FILE_UTILS] BASE_PATH exists but is not a directory: {BASE_PATH}")
+    if base_path_exists and not base_path_readable:
+        logger.warning(f"[FILE_UTILS] BASE_PATH directory is not readable: {BASE_PATH}")
+    if base_path_exists and not base_path_writable:
+        logger.warning(f"[FILE_UTILS] BASE_PATH directory is not writable: {BASE_PATH}")
+except Exception as e:
+    logger.error(f"[FILE_UTILS] Failed to ensure BASE_PATH directory: {str(e)}", exc_info=True)
+    raise
 
 # TODO : Add Config file for content types allowed in system
 CONTENT_TYPES = {

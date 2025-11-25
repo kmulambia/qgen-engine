@@ -175,18 +175,27 @@ class FileAPI(BaseAPI[FileModel, FileCreateSchema, FileUpdateSchema, FileSchema]
             Serve a file by its filename (for direct URL access)
             Reconstructs path from BASE_PATH to be environment-agnostic
             """
+            logger.debug(f"[FILE_SERVE] Request received for filename: {filename}")
+            logger.debug(f"[FILE_SERVE] Request URL: {request.url}")
+            logger.debug(f"[FILE_SERVE] BASE_PATH configured as: {BASE_PATH}")
+            logger.debug(f"[FILE_SERVE] Current working directory: {os.getcwd()}")
+            
             try:
                 # Get file by filename
                 from sqlalchemy import select
                 from engine.models.file_model import FileModel
                 
+                logger.debug(f"[FILE_SERVE] Querying database for filename: {filename}")
                 stmt = select(FileModel).where(FileModel.filename == filename)
                 result = await db_conn.execute(stmt)
                 file = result.scalar_one_or_none()
                 
                 if not file:
-                    logger.error(f"File not found in database: {filename}")
+                    logger.error(f"[FILE_SERVE] File not found in database: {filename}")
                     raise ErrorHandling.not_found("File not found")
+
+                logger.debug(f"[FILE_SERVE] File found in database. ID: {file.id}, stored full_path: {file.full_path}")
+                logger.debug(f"[FILE_SERVE] File metadata - original_filename: {file.original_filename}, content_type: {file.content_type}")
 
                 # Try multiple path resolution strategies
                 file_path = None
@@ -195,9 +204,11 @@ class FileAPI(BaseAPI[FileModel, FileCreateSchema, FileUpdateSchema, FileSchema]
                 # Strategy 1: Reconstruct from BASE_PATH + filename (environment-agnostic)
                 reconstructed_path = os.path.join(BASE_PATH, filename)
                 paths_to_try.append(("BASE_PATH + filename", reconstructed_path))
+                logger.debug(f"[FILE_SERVE] Strategy 1 - Reconstructed path: {reconstructed_path}")
                 
                 # Strategy 2: Use stored full_path (backward compatibility)
                 paths_to_try.append(("stored full_path", file.full_path))
+                logger.debug(f"[FILE_SERVE] Strategy 2 - Stored full_path: {file.full_path}")
                 
                 # Strategy 3: Extract directory from stored full_path and combine with filename
                 if file.full_path:
@@ -205,38 +216,65 @@ class FileAPI(BaseAPI[FileModel, FileCreateSchema, FileUpdateSchema, FileSchema]
                     if stored_dir:
                         dir_based_path = os.path.join(stored_dir, filename)
                         paths_to_try.append(("stored_dir + filename", dir_based_path))
+                        logger.debug(f"[FILE_SERVE] Strategy 3 - Extracted dir from stored path: {stored_dir}, combined path: {dir_based_path}")
                 
                 # Strategy 4: Try relative to current working directory
                 cwd_path = os.path.join(os.getcwd(), BASE_PATH, filename)
                 paths_to_try.append(("CWD + BASE_PATH + filename", cwd_path))
+                logger.debug(f"[FILE_SERVE] Strategy 4 - CWD-based path: {cwd_path}")
+                
+                logger.debug(f"[FILE_SERVE] Starting path resolution - will try {len(paths_to_try)} strategies")
                 
                 # Try each path in order
-                for strategy_name, path_to_check in paths_to_try:
-                    if os.path.exists(path_to_check) and os.path.isfile(path_to_check):
-                        file_path = path_to_check
-                        logger.info(f"File found using {strategy_name}: {path_to_check}")
-                        break
+                for idx, (strategy_name, path_to_check) in enumerate(paths_to_try, 1):
+                    logger.debug(f"[FILE_SERVE] Strategy {idx}/{len(paths_to_try)} ({strategy_name}): Checking path: {path_to_check}")
+                    
+                    # Check if path exists
+                    path_exists = os.path.exists(path_to_check)
+                    logger.debug(f"[FILE_SERVE] Strategy {idx} - Path exists: {path_exists}")
+                    
+                    if path_exists:
+                        # Check if it's a file
+                        is_file = os.path.isfile(path_to_check)
+                        logger.debug(f"[FILE_SERVE] Strategy {idx} - Is file: {is_file}")
+                        
+                        # Check if readable
+                        is_readable = os.access(path_to_check, os.R_OK)
+                        logger.debug(f"[FILE_SERVE] Strategy {idx} - Is readable: {is_readable}")
+                        
+                        if is_file and is_readable:
+                            file_path = path_to_check
+                            logger.info(f"[FILE_SERVE] ✓ File found using strategy {idx} ({strategy_name}): {path_to_check}")
+                            break
+                        else:
+                            logger.warning(f"[FILE_SERVE] Strategy {idx} - Path exists but is_file={is_file}, readable={is_readable}")
+                    else:
+                        logger.debug(f"[FILE_SERVE] Strategy {idx} - Path does not exist")
                 
                 if not file_path:
                     # None of the paths exist - log detailed error with all attempted paths
                     logger.error(
-                        f"File not found on disk. Filename: {filename}, "
+                        f"[FILE_SERVE] ✗ File not found on disk. Filename: {filename}, "
                         f"BASE_PATH: {BASE_PATH}, "
                         f"Current working directory: {os.getcwd()}, "
                         f"Stored full_path: {file.full_path}, "
-                        f"Attempted paths: {[f'{name}: {path}' for name, path in paths_to_try]}"
+                        f"Attempted paths: {[f'{name}: {path} (exists={os.path.exists(path)})' for name, path in paths_to_try]}"
                     )
                     raise ErrorHandling.not_found("File not found on disk")
+
+                logger.debug(f"[FILE_SERVE] Successfully resolved file path: {file_path}")
+                logger.debug(f"[FILE_SERVE] Returning FileResponse with path: {file_path}, media_type: {file.content_type}")
 
                 return FileResponse(
                     path=file_path,
                     media_type=file.content_type,
                     filename=file.original_filename
                 )
+            except HTTPException as e:
+                logger.error(f"[FILE_SERVE] HTTPException: {e.status_code} - {e.detail}")
+                raise e
             except Exception as e:
-                logger.error(f"Failed to serve file: {str(e)}")
-                if isinstance(e, HTTPException):
-                    raise e
+                logger.error(f"[FILE_SERVE] Unexpected error serving file '{filename}': {str(e)}", exc_info=True)
                 raise ErrorHandling.server_error("Failed to serve file")
 
         @self.router.get("/{uid}/download")
@@ -251,11 +289,20 @@ class FileAPI(BaseAPI[FileModel, FileCreateSchema, FileUpdateSchema, FileSchema]
             Download a file by its ID
             Reconstructs path from BASE_PATH to be environment-agnostic
             """
+            logger.debug(f"[FILE_DOWNLOAD] Request received for file ID: {uid}")
+            logger.debug(f"[FILE_DOWNLOAD] Request URL: {request.url}")
+            logger.debug(f"[FILE_DOWNLOAD] BASE_PATH configured as: {BASE_PATH}")
+            logger.debug(f"[FILE_DOWNLOAD] Current working directory: {os.getcwd()}")
+            
             try:
+                logger.debug(f"[FILE_DOWNLOAD] Querying database for file ID: {uid}")
                 file = await self.service.get_by_id(db_conn, uid)
                 if not file:
-                    logger.error(f"File not found in database: {uid}, Request: {request.method} {request.url}")
+                    logger.error(f"[FILE_DOWNLOAD] File not found in database: {uid}, Request: {request.method} {request.url}")
                     raise ErrorHandling.not_found("File not found")
+
+                logger.debug(f"[FILE_DOWNLOAD] File found in database. Filename: {file.filename}, stored full_path: {file.full_path}")
+                logger.debug(f"[FILE_DOWNLOAD] File metadata - original_filename: {file.original_filename}, content_type: {file.content_type}")
 
                 # Try multiple path resolution strategies
                 file_path = None
@@ -264,9 +311,11 @@ class FileAPI(BaseAPI[FileModel, FileCreateSchema, FileUpdateSchema, FileSchema]
                 # Strategy 1: Reconstruct from BASE_PATH + filename (environment-agnostic)
                 reconstructed_path = os.path.join(BASE_PATH, file.filename)
                 paths_to_try.append(("BASE_PATH + filename", reconstructed_path))
+                logger.debug(f"[FILE_DOWNLOAD] Strategy 1 - Reconstructed path: {reconstructed_path}")
                 
                 # Strategy 2: Use stored full_path (backward compatibility)
                 paths_to_try.append(("stored full_path", file.full_path))
+                logger.debug(f"[FILE_DOWNLOAD] Strategy 2 - Stored full_path: {file.full_path}")
                 
                 # Strategy 3: Extract directory from stored full_path and combine with filename
                 if file.full_path:
@@ -274,39 +323,66 @@ class FileAPI(BaseAPI[FileModel, FileCreateSchema, FileUpdateSchema, FileSchema]
                     if stored_dir:
                         dir_based_path = os.path.join(stored_dir, file.filename)
                         paths_to_try.append(("stored_dir + filename", dir_based_path))
+                        logger.debug(f"[FILE_DOWNLOAD] Strategy 3 - Extracted dir from stored path: {stored_dir}, combined path: {dir_based_path}")
                 
                 # Strategy 4: Try relative to current working directory
                 cwd_path = os.path.join(os.getcwd(), BASE_PATH, file.filename)
                 paths_to_try.append(("CWD + BASE_PATH + filename", cwd_path))
+                logger.debug(f"[FILE_DOWNLOAD] Strategy 4 - CWD-based path: {cwd_path}")
+                
+                logger.debug(f"[FILE_DOWNLOAD] Starting path resolution - will try {len(paths_to_try)} strategies")
                 
                 # Try each path in order
-                for strategy_name, path_to_check in paths_to_try:
-                    if os.path.exists(path_to_check) and os.path.isfile(path_to_check):
-                        file_path = path_to_check
-                        logger.info(f"File found using {strategy_name}: {path_to_check}")
-                        break
+                for idx, (strategy_name, path_to_check) in enumerate(paths_to_try, 1):
+                    logger.debug(f"[FILE_DOWNLOAD] Strategy {idx}/{len(paths_to_try)} ({strategy_name}): Checking path: {path_to_check}")
+                    
+                    # Check if path exists
+                    path_exists = os.path.exists(path_to_check)
+                    logger.debug(f"[FILE_DOWNLOAD] Strategy {idx} - Path exists: {path_exists}")
+                    
+                    if path_exists:
+                        # Check if it's a file
+                        is_file = os.path.isfile(path_to_check)
+                        logger.debug(f"[FILE_DOWNLOAD] Strategy {idx} - Is file: {is_file}")
+                        
+                        # Check if readable
+                        is_readable = os.access(path_to_check, os.R_OK)
+                        logger.debug(f"[FILE_DOWNLOAD] Strategy {idx} - Is readable: {is_readable}")
+                        
+                        if is_file and is_readable:
+                            file_path = path_to_check
+                            logger.info(f"[FILE_DOWNLOAD] ✓ File found using strategy {idx} ({strategy_name}): {path_to_check}")
+                            break
+                        else:
+                            logger.warning(f"[FILE_DOWNLOAD] Strategy {idx} - Path exists but is_file={is_file}, readable={is_readable}")
+                    else:
+                        logger.debug(f"[FILE_DOWNLOAD] Strategy {idx} - Path does not exist")
                 
                 if not file_path:
                     # None of the paths exist - log detailed error with all attempted paths
                     logger.error(
-                        f"File not found on disk. File ID: {uid}, Filename: {file.filename}, "
+                        f"[FILE_DOWNLOAD] ✗ File not found on disk. File ID: {uid}, Filename: {file.filename}, "
                         f"BASE_PATH: {BASE_PATH}, "
                         f"Current working directory: {os.getcwd()}, "
                         f"Stored full_path: {file.full_path}, "
-                        f"Attempted paths: {[f'{name}: {path}' for name, path in paths_to_try]}, "
+                        f"Attempted paths: {[f'{name}: {path} (exists={os.path.exists(path)})' for name, path in paths_to_try]}, "
                         f"Request: {request.method} {request.url}"
                     )
                     raise ErrorHandling.not_found("File not found on disk")
+
+                logger.debug(f"[FILE_DOWNLOAD] Successfully resolved file path: {file_path}")
+                logger.debug(f"[FILE_DOWNLOAD] Returning FileResponse with path: {file_path}, media_type: {file.content_type}")
 
                 return FileResponse(
                     path=file_path,
                     media_type=file.content_type,
                     filename=file.filename
                 )
+            except HTTPException as e:
+                logger.error(f"[FILE_DOWNLOAD] HTTPException: {e.status_code} - {e.detail}")
+                raise e
             except Exception as e:
-                logger.error(f"Failed to download file: {str(e)}, Request: {request.method} {request.url}")
-                if isinstance(e, HTTPException):
-                    raise e
+                logger.error(f"[FILE_DOWNLOAD] Unexpected error downloading file '{uid}': {str(e)}, Request: {request.method} {request.url}", exc_info=True)
                 raise ErrorHandling.server_error("Failed to download file")
 
         @self.router.delete("/{uid}", status_code=status.HTTP_204_NO_CONTENT)

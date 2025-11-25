@@ -5,5 +5,6 @@ from engine.utils.config_util import load_config
 config = load_config()
 
 MODE = config.get_variable("MODE", "development")
-# TODO: if MODE is production, set log level to INFO else set to DEBUG
-logger = get_logger("api_logger", log_path="logs/api.log", sqlalchemy_log_level=logging.CRITICAL)
+# Set log level based on MODE: DEBUG for development, INFO for production
+log_level = logging.DEBUG if MODE == "development" else logging.INFO
+logger = get_logger("api_logger", log_path="logs/api.log", level=log_level, sqlalchemy_log_level=logging.CRITICAL)
