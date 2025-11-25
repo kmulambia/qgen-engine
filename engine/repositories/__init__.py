@@ -31,6 +31,7 @@ from engine.repositories.layout_repository import LayoutRepository
 
 # Quotations
 from engine.repositories.quotation_repository import QuotationRepository
+from engine.repositories.quotation_change_history_repository import QuotationChangeHistoryRepository
 
 __all__ = [
     # User Management / Authentication
@@ -66,4 +67,5 @@ __all__ = [
     
     # Quotations
     "QuotationRepository",
+    "QuotationChangeHistoryRepository",
 ]

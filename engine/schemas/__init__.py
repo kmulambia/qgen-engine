@@ -203,6 +203,13 @@ from engine.schemas.quotation_schemas import (
     QuotationCalculationResponse,
     calculate_quotation_totals,
 )
+from engine.schemas.quotation_change_history_schemas import (
+    QuotationChangeHistoryBaseSchema,
+    QuotationChangeHistoryCreateSchema,
+    QuotationChangeHistorySchema,
+    QuotationChangeHistoryListResponse,
+    FieldChangeSchema,
+)
 
 # Export all schemas
 __all__ = [
@@ -370,4 +377,11 @@ __all__ = [
     "QuotationItemSchema",
     "QuotationCalculationResponse",
     "calculate_quotation_totals",
+    
+    # Quotation Change History
+    "QuotationChangeHistoryBaseSchema",
+    "QuotationChangeHistoryCreateSchema",
+    "QuotationChangeHistorySchema",
+    "QuotationChangeHistoryListResponse",
+    "FieldChangeSchema",
 ]

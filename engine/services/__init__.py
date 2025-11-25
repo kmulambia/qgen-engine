@@ -32,6 +32,7 @@ from engine.services.layout_service import LayoutService
 
 # Quotations
 from engine.services.quotation_service import QuotationService
+from engine.services.quotation_change_history_service import QuotationChangeHistoryService
 
 __all__ = [
     # User Management / Authentication
@@ -68,4 +69,5 @@ __all__ = [
     
     # Quotations
     "QuotationService",
+    "QuotationChangeHistoryService",
 ]

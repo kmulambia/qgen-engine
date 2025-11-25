@@ -34,6 +34,7 @@ from .layout_model import LayoutModel
 
 # Quotations
 from .quotation_model import QuotationModel
+from .quotation_change_history_model import QuotationChangeHistoryModel
 
 __all__ = [
     # Base models
@@ -73,4 +74,5 @@ __all__ = [
     
     # Quotations
     'QuotationModel',
+    'QuotationChangeHistoryModel',
 ]

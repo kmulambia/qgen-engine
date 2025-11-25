@@ -11,6 +11,7 @@ from engine.schemas.layout_schemas import LayoutSchema
 class QuotationItemSchema(BaseModel):
     """Schema for individual quotation line items"""
     item_id: Optional[str] = Field(None, description="Optional item identifier")
+    title: Optional[str] = Field(None, description="Item title or name")
     description: str = Field(..., min_length=1, description="Item description")
     quantity: Decimal = Field(..., gt=0, description="Item quantity")
     unit_price: Decimal = Field(..., ge=0, description="Price per unit")

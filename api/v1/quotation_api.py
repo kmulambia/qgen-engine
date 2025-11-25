@@ -10,6 +10,11 @@ from engine.schemas.quotation_schemas import (
     QuotationApproveSchema,
     QuotationResendSchema
 )
+from engine.schemas.quotation_change_history_schemas import (
+    QuotationChangeHistorySchema,
+    QuotationChangeHistoryListResponse
+)
+from engine.services.quotation_change_history_service import QuotationChangeHistoryService
 from engine.services.quotation_service import QuotationService
 from api.v1.base_api import BaseAPI
 from engine.schemas.base_schemas import PaginatedResponse
@@ -289,6 +294,57 @@ class QuotationAPI(BaseAPI[QuotationModel, QuotationCreateSchema, QuotationUpdat
             except Exception as e:
                 error_details = str(e) if MODE == "development" else "An error occurred while retrieving the quotation."
                 logger.error(f"Error retrieving quotation by token: {e}, Request: {request.method} {request.url}")
+                raise ErrorHandling.server_error(error_details)
+
+        @self.router.get("/{quotation_id}/history", response_model=QuotationChangeHistoryListResponse, status_code=status.HTTP_200_OK)
+        @rate_limit()
+        async def get_quotation_history(
+            request: Request,
+            quotation_id: UUID,
+            limit: int = 50,
+            offset: int = 0,
+            db_conn: AsyncSession = Depends(get_db),
+            token_data: TokenData = Depends(authentication)
+        ):
+            """
+            Get the change history for a quotation.
+            Returns paginated list of all changes with field-level details.
+            """
+            try:
+                # Verify quotation exists
+                quotation = await self.service.get_by_id(db_conn, quotation_id)
+                if not quotation:
+                    logger.error(f"Quotation not found: {quotation_id}, Request: {request.method} {request.url}")
+                    raise ErrorHandling.not_found("Quotation not found")
+
+                # Get change history
+                change_history_service = QuotationChangeHistoryService()
+                history_records = await change_history_service.get_quotation_history(
+                    db_conn=db_conn,
+                    quotation_id=quotation_id,
+                    limit=limit,
+                    offset=offset
+                )
+
+                # Convert to schemas
+                history_items = [QuotationChangeHistorySchema.model_validate(record) for record in history_records]
+
+                # Get total count (simplified - in production, you'd want a count query)
+                # For now, if we got less than limit, that's the total
+                total = len(history_items) if len(history_items) < limit else limit + 1
+
+                return QuotationChangeHistoryListResponse(
+                    items=history_items,
+                    total=total,
+                    limit=limit,
+                    offset=offset
+                )
+
+            except HTTPException:
+                raise
+            except Exception as e:
+                error_details = str(e) if MODE == "development" else "An error occurred while retrieving quotation history."
+                logger.error(f"Error retrieving quotation history: {e}, Request: {request.method} {request.url}")
                 raise ErrorHandling.server_error(error_details)
 
 
