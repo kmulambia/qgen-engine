@@ -15,7 +15,7 @@ from engine.services.file_service import FileService
 from engine.models.file_model import FileModel
 from engine.schemas.base_schemas import PaginatedResponse
 from engine.utils.config_util import load_config
-from engine.utils.file_utils import save_uploaded_files
+from engine.utils.file_utils import save_uploaded_files, BASE_PATH
 from datetime import datetime, timezone
 
 import os
@@ -173,6 +173,7 @@ class FileAPI(BaseAPI[FileModel, FileCreateSchema, FileUpdateSchema, FileSchema]
         ):
             """
             Serve a file by its filename (for direct URL access)
+            Reconstructs path from BASE_PATH to be environment-agnostic
             """
             try:
                 # Get file by filename
@@ -184,15 +185,33 @@ class FileAPI(BaseAPI[FileModel, FileCreateSchema, FileUpdateSchema, FileSchema]
                 file = result.scalar_one_or_none()
                 
                 if not file:
-                    logger.error(f"File not found: {filename}")
+                    logger.error(f"File not found in database: {filename}")
                     raise ErrorHandling.not_found("File not found")
 
-                if not os.path.exists(file.full_path):
-                    logger.error(f"File not found on disk: {file.full_path}")
+                # Reconstruct path from BASE_PATH + filename (environment-agnostic)
+                reconstructed_path = os.path.join(BASE_PATH, filename)
+                
+                # Try reconstructed path first (works across environments)
+                file_path = None
+                if os.path.exists(reconstructed_path):
+                    file_path = reconstructed_path
+                    logger.debug(f"File found at reconstructed path: {reconstructed_path}")
+                # Fall back to stored full_path for backward compatibility
+                elif os.path.exists(file.full_path):
+                    file_path = file.full_path
+                    logger.debug(f"File found at stored full_path: {file.full_path}")
+                else:
+                    # Neither path exists - log detailed error
+                    logger.error(
+                        f"File not found on disk. Filename: {filename}, "
+                        f"BASE_PATH: {BASE_PATH}, "
+                        f"Reconstructed path: {reconstructed_path}, "
+                        f"Stored full_path: {file.full_path}"
+                    )
                     raise ErrorHandling.not_found("File not found on disk")
 
                 return FileResponse(
-                    path=file.full_path,
+                    path=file_path,
                     media_type=file.content_type,
                     filename=file.original_filename
                 )
@@ -212,19 +231,39 @@ class FileAPI(BaseAPI[FileModel, FileCreateSchema, FileUpdateSchema, FileSchema]
         ):
             """
             Download a file by its ID
+            Reconstructs path from BASE_PATH to be environment-agnostic
             """
             try:
                 file = await self.service.get_by_id(db_conn, uid)
                 if not file:
-                    logger.error(f"File not found: {uid}, Request: {request.method} {request.url}")
+                    logger.error(f"File not found in database: {uid}, Request: {request.method} {request.url}")
                     raise ErrorHandling.not_found("File not found")
 
-                if not os.path.exists(file.full_path):
-                    logger.error(f"File not found on disk: {file.full_path}, Request: {request.method} {request.url}")
+                # Reconstruct path from BASE_PATH + filename (environment-agnostic)
+                reconstructed_path = os.path.join(BASE_PATH, file.filename)
+                
+                # Try reconstructed path first (works across environments)
+                file_path = None
+                if os.path.exists(reconstructed_path):
+                    file_path = reconstructed_path
+                    logger.debug(f"File found at reconstructed path: {reconstructed_path}")
+                # Fall back to stored full_path for backward compatibility
+                elif os.path.exists(file.full_path):
+                    file_path = file.full_path
+                    logger.debug(f"File found at stored full_path: {file.full_path}")
+                else:
+                    # Neither path exists - log detailed error
+                    logger.error(
+                        f"File not found on disk. File ID: {uid}, Filename: {file.filename}, "
+                        f"BASE_PATH: {BASE_PATH}, "
+                        f"Reconstructed path: {reconstructed_path}, "
+                        f"Stored full_path: {file.full_path}, "
+                        f"Request: {request.method} {request.url}"
+                    )
                     raise ErrorHandling.not_found("File not found on disk")
 
                 return FileResponse(
-                    path=file.full_path,
+                    path=file_path,
                     media_type=file.content_type,
                     filename=file.filename
                 )
