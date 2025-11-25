@@ -14,6 +14,7 @@ from api.dependencies.db import get_db, db as db
 from api.dependencies.cache import get_cache, cache as cache
 from api.v1.router import router as v1_router
 from api.dependencies.ratelimiter import RateLimitMiddleware
+from api.dependencies.cors_override import CORSEOverrideMiddleware
 from api.dependencies.logging import logger
 from engine.utils.config_util import load_config
 
@@ -77,6 +78,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# CORS override middleware - runs after CORS middleware to override headers for file endpoints
+# This ensures specific origin (not wildcard) is used when credentials mode is enabled
+app.add_middleware(CORSEOverrideMiddleware)  # noqa
 
 app.add_middleware(RateLimitMiddleware)  # noqa
 

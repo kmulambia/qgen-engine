@@ -27,26 +27,29 @@ MODE = config.get_variable("MODE", "development")
 
 def get_cors_headers(request: Request) -> dict:
     """Get CORS headers based on request origin and configuration.
-    Always allows the request origin to ensure CORS works properly."""
+    Always allows the request origin (not wildcard) to support credentials mode."""
     origin = request.headers.get("origin")
     allowed_origins_config = config.get_variable("CORS_ORIGINS", "*")
     allowed_origins = [o.strip() for o in allowed_origins_config.split(",") if o.strip()]
     
     logger.debug(f"[CORS] Request origin: {origin}, Allowed origins config: {allowed_origins_config}")
     
-    # Always allow the requesting origin if provided (most permissive approach)
+    # Always use the specific origin if provided (never use * when origin is present)
+    # This is required when frontend uses credentials: 'include'
     if origin:
         allow_origin = origin
         allow_credentials = True
-        logger.debug(f"[CORS] Allowing origin: {origin}")
-    elif "*" in allowed_origins or allowed_origins_config.strip() == "*":
-        # Wildcard configured
-        allow_origin = "*"
-        allow_credentials = False
+        logger.debug(f"[CORS] Allowing specific origin with credentials: {origin}")
     else:
-        # Use first allowed origin or wildcard as fallback
-        allow_origin = allowed_origins[0].strip() if allowed_origins else "*"
-        allow_credentials = allow_origin != "*"
+        # No origin header (e.g., same-origin request or no origin sent)
+        # Use first allowed origin if available, otherwise wildcard (no credentials)
+        if allowed_origins and allowed_origins[0].strip() != "*":
+            allow_origin = allowed_origins[0].strip()
+            allow_credentials = True
+        else:
+            allow_origin = "*"
+            allow_credentials = False
+        logger.debug(f"[CORS] No origin header, using: {allow_origin}")
     
     headers = {
         "Access-Control-Allow-Origin": allow_origin,
@@ -55,7 +58,7 @@ def get_cors_headers(request: Request) -> dict:
         "Access-Control-Max-Age": "86400",  # 24 hours
     }
     
-    # Only include credentials header if not using wildcard
+    # Always include credentials header when using specific origin (not wildcard)
     if allow_credentials and allow_origin != "*":
         headers["Access-Control-Allow-Credentials"] = "true"
     
@@ -362,7 +365,11 @@ class FileAPI(BaseAPI[FileModel, FileCreateSchema, FileUpdateSchema, FileSchema]
                     headers=response_headers
                 )
                 
-                logger.debug(f"[FILE_SERVE] Returning StreamingResponse with headers: {dict(response.headers)}")
+                # Ensure CORS headers override any middleware headers
+                for key, value in cors_headers.items():
+                    response.headers[key] = value
+                
+                logger.debug(f"[FILE_SERVE] Returning StreamingResponse. Final headers: Access-Control-Allow-Origin={response.headers.get('Access-Control-Allow-Origin')}, Access-Control-Allow-Credentials={response.headers.get('Access-Control-Allow-Credentials')}")
                 return response
             except HTTPException as e:
                 logger.error(f"[FILE_SERVE] HTTPException: {e.status_code} - {e.detail}")
@@ -526,7 +533,11 @@ class FileAPI(BaseAPI[FileModel, FileCreateSchema, FileUpdateSchema, FileSchema]
                     headers=response_headers
                 )
                 
-                logger.debug(f"[FILE_DOWNLOAD] Returning StreamingResponse with headers: {dict(response.headers)}")
+                # Ensure CORS headers override any middleware headers
+                for key, value in cors_headers.items():
+                    response.headers[key] = value
+                
+                logger.debug(f"[FILE_DOWNLOAD] Returning StreamingResponse. Final headers: Access-Control-Allow-Origin={response.headers.get('Access-Control-Allow-Origin')}, Access-Control-Allow-Credentials={response.headers.get('Access-Control-Allow-Credentials')}")
                 return response
             except HTTPException as e:
                 logger.error(f"[FILE_DOWNLOAD] HTTPException: {e.status_code} - {e.detail}")
