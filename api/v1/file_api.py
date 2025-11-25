@@ -1,8 +1,9 @@
 from uuid import UUID
 from typing import List
 from fastapi import UploadFile, File, HTTPException, Depends, Request, status
-from fastapi.responses import FileResponse
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
+import asyncio
 from api.dependencies.db import get_db
 from api.dependencies.authentication import authentication
 from api.dependencies.error_handler import ErrorHandling
@@ -263,13 +264,56 @@ class FileAPI(BaseAPI[FileModel, FileCreateSchema, FileUpdateSchema, FileSchema]
                     raise ErrorHandling.not_found("File not found on disk")
 
                 logger.debug(f"[FILE_SERVE] Successfully resolved file path: {file_path}")
-                logger.debug(f"[FILE_SERVE] Returning FileResponse with path: {file_path}, media_type: {file.content_type}")
-
-                return FileResponse(
-                    path=file_path,
-                    media_type=file.content_type,
-                    filename=file.original_filename
+                logger.debug(f"[FILE_SERVE] Preparing file response with path: {file_path}, media_type: {file.content_type}")
+                
+                # Determine content type - use stored or detect from file
+                from engine.utils.file_utils import get_content_type
+                content_type = file.content_type or get_content_type(file_path)
+                
+                # Async generator to stream file content in chunks
+                async def file_stream():
+                    """Async generator to stream file content without loading entire file into memory"""
+                    chunk_size = 8192  # 8KB chunks
+                    
+                    def read_file_in_chunks(path, size):
+                        """Read file in chunks - to be run in executor"""
+                        chunks = []
+                        with open(path, 'rb') as f:
+                            while True:
+                                chunk = f.read(size)
+                                if not chunk:
+                                    break
+                                chunks.append(chunk)
+                        return chunks
+                    
+                    try:
+                        # Read file in chunks using thread pool to avoid blocking
+                        loop = asyncio.get_running_loop()
+                        chunks = await loop.run_in_executor(None, read_file_in_chunks, file_path, chunk_size)
+                        for chunk in chunks:
+                            yield chunk
+                    except Exception as e:
+                        logger.error(f"[FILE_SERVE] Error streaming file: {str(e)}")
+                        raise
+                
+                # Get file size for Content-Length header
+                file_size = os.path.getsize(file_path)
+                
+                # Create response with explicit headers to avoid ORB blocking
+                response = StreamingResponse(
+                    file_stream(),
+                    media_type=content_type,
+                    headers={
+                        "Content-Disposition": f'inline; filename="{file.original_filename}"',
+                        "Content-Length": str(file_size),
+                        "Accept-Ranges": "bytes",
+                        "X-Content-Type-Options": "nosniff",
+                        "Cache-Control": "public, max-age=3600",
+                    }
                 )
+                
+                logger.debug(f"[FILE_SERVE] Returning StreamingResponse with headers: {dict(response.headers)}")
+                return response
             except HTTPException as e:
                 logger.error(f"[FILE_SERVE] HTTPException: {e.status_code} - {e.detail}")
                 raise e
@@ -371,13 +415,57 @@ class FileAPI(BaseAPI[FileModel, FileCreateSchema, FileUpdateSchema, FileSchema]
                     raise ErrorHandling.not_found("File not found on disk")
 
                 logger.debug(f"[FILE_DOWNLOAD] Successfully resolved file path: {file_path}")
-                logger.debug(f"[FILE_DOWNLOAD] Returning FileResponse with path: {file_path}, media_type: {file.content_type}")
-
-                return FileResponse(
-                    path=file_path,
-                    media_type=file.content_type,
-                    filename=file.filename
+                logger.debug(f"[FILE_DOWNLOAD] Preparing file response with path: {file_path}, media_type: {file.content_type}")
+                
+                # Determine content type - use stored or detect from file
+                from engine.utils.file_utils import get_content_type
+                content_type = file.content_type or get_content_type(file_path)
+                
+                # Async generator to stream file content in chunks
+                async def file_stream():
+                    """Async generator to stream file content without loading entire file into memory"""
+                    chunk_size = 8192  # 8KB chunks
+                    
+                    def read_file_in_chunks(path, size):
+                        """Read file in chunks - to be run in executor"""
+                        chunks = []
+                        with open(path, 'rb') as f:
+                            while True:
+                                chunk = f.read(size)
+                                if not chunk:
+                                    break
+                                chunks.append(chunk)
+                        return chunks
+                    
+                    try:
+                        # Read file in chunks using thread pool to avoid blocking
+                        loop = asyncio.get_running_loop()
+                        chunks = await loop.run_in_executor(None, read_file_in_chunks, file_path, chunk_size)
+                        for chunk in chunks:
+                            yield chunk
+                    except Exception as e:
+                        logger.error(f"[FILE_DOWNLOAD] Error streaming file: {str(e)}")
+                        raise
+                
+                # Get file size for Content-Length header
+                file_size = os.path.getsize(file_path)
+                
+                # Create response with explicit headers to avoid ORB blocking
+                # Use attachment disposition for download endpoint
+                response = StreamingResponse(
+                    file_stream(),
+                    media_type=content_type,
+                    headers={
+                        "Content-Disposition": f'attachment; filename="{file.original_filename or file.filename}"',
+                        "Content-Length": str(file_size),
+                        "Accept-Ranges": "bytes",
+                        "X-Content-Type-Options": "nosniff",
+                        "Cache-Control": "private, no-cache",
+                    }
                 )
+                
+                logger.debug(f"[FILE_DOWNLOAD] Returning StreamingResponse with headers: {dict(response.headers)}")
+                return response
             except HTTPException as e:
                 logger.error(f"[FILE_DOWNLOAD] HTTPException: {e.status_code} - {e.detail}")
                 raise e

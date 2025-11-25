@@ -66,7 +66,9 @@ try:
     if not base_path_exists:
         logger.warning(f"[FILE_UTILS] BASE_PATH directory does not exist: {BASE_PATH}")
     if base_path_exists and not base_path_is_dir:
-        logger.error(f"[FILE_UTILS] BASE_PATH exists but is not a directory: {BASE_PATH}")
+        error_msg = f"[FILE_UTILS] BASE_PATH exists but is not a directory: {BASE_PATH}"
+        logger.error(error_msg)
+        raise RuntimeError(error_msg)
     if base_path_exists and not base_path_readable:
         logger.warning(f"[FILE_UTILS] BASE_PATH directory is not readable: {BASE_PATH}")
     if base_path_exists and not base_path_writable:
