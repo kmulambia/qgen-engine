@@ -188,25 +188,43 @@ class FileAPI(BaseAPI[FileModel, FileCreateSchema, FileUpdateSchema, FileSchema]
                     logger.error(f"File not found in database: {filename}")
                     raise ErrorHandling.not_found("File not found")
 
-                # Reconstruct path from BASE_PATH + filename (environment-agnostic)
-                reconstructed_path = os.path.join(BASE_PATH, filename)
-                
-                # Try reconstructed path first (works across environments)
+                # Try multiple path resolution strategies
                 file_path = None
-                if os.path.exists(reconstructed_path):
-                    file_path = reconstructed_path
-                    logger.debug(f"File found at reconstructed path: {reconstructed_path}")
-                # Fall back to stored full_path for backward compatibility
-                elif os.path.exists(file.full_path):
-                    file_path = file.full_path
-                    logger.debug(f"File found at stored full_path: {file.full_path}")
-                else:
-                    # Neither path exists - log detailed error
+                paths_to_try = []
+                
+                # Strategy 1: Reconstruct from BASE_PATH + filename (environment-agnostic)
+                reconstructed_path = os.path.join(BASE_PATH, filename)
+                paths_to_try.append(("BASE_PATH + filename", reconstructed_path))
+                
+                # Strategy 2: Use stored full_path (backward compatibility)
+                paths_to_try.append(("stored full_path", file.full_path))
+                
+                # Strategy 3: Extract directory from stored full_path and combine with filename
+                if file.full_path:
+                    stored_dir = os.path.dirname(file.full_path)
+                    if stored_dir:
+                        dir_based_path = os.path.join(stored_dir, filename)
+                        paths_to_try.append(("stored_dir + filename", dir_based_path))
+                
+                # Strategy 4: Try relative to current working directory
+                cwd_path = os.path.join(os.getcwd(), BASE_PATH, filename)
+                paths_to_try.append(("CWD + BASE_PATH + filename", cwd_path))
+                
+                # Try each path in order
+                for strategy_name, path_to_check in paths_to_try:
+                    if os.path.exists(path_to_check) and os.path.isfile(path_to_check):
+                        file_path = path_to_check
+                        logger.info(f"File found using {strategy_name}: {path_to_check}")
+                        break
+                
+                if not file_path:
+                    # None of the paths exist - log detailed error with all attempted paths
                     logger.error(
                         f"File not found on disk. Filename: {filename}, "
                         f"BASE_PATH: {BASE_PATH}, "
-                        f"Reconstructed path: {reconstructed_path}, "
-                        f"Stored full_path: {file.full_path}"
+                        f"Current working directory: {os.getcwd()}, "
+                        f"Stored full_path: {file.full_path}, "
+                        f"Attempted paths: {[f'{name}: {path}' for name, path in paths_to_try]}"
                     )
                     raise ErrorHandling.not_found("File not found on disk")
 
@@ -239,25 +257,43 @@ class FileAPI(BaseAPI[FileModel, FileCreateSchema, FileUpdateSchema, FileSchema]
                     logger.error(f"File not found in database: {uid}, Request: {request.method} {request.url}")
                     raise ErrorHandling.not_found("File not found")
 
-                # Reconstruct path from BASE_PATH + filename (environment-agnostic)
-                reconstructed_path = os.path.join(BASE_PATH, file.filename)
-                
-                # Try reconstructed path first (works across environments)
+                # Try multiple path resolution strategies
                 file_path = None
-                if os.path.exists(reconstructed_path):
-                    file_path = reconstructed_path
-                    logger.debug(f"File found at reconstructed path: {reconstructed_path}")
-                # Fall back to stored full_path for backward compatibility
-                elif os.path.exists(file.full_path):
-                    file_path = file.full_path
-                    logger.debug(f"File found at stored full_path: {file.full_path}")
-                else:
-                    # Neither path exists - log detailed error
+                paths_to_try = []
+                
+                # Strategy 1: Reconstruct from BASE_PATH + filename (environment-agnostic)
+                reconstructed_path = os.path.join(BASE_PATH, file.filename)
+                paths_to_try.append(("BASE_PATH + filename", reconstructed_path))
+                
+                # Strategy 2: Use stored full_path (backward compatibility)
+                paths_to_try.append(("stored full_path", file.full_path))
+                
+                # Strategy 3: Extract directory from stored full_path and combine with filename
+                if file.full_path:
+                    stored_dir = os.path.dirname(file.full_path)
+                    if stored_dir:
+                        dir_based_path = os.path.join(stored_dir, file.filename)
+                        paths_to_try.append(("stored_dir + filename", dir_based_path))
+                
+                # Strategy 4: Try relative to current working directory
+                cwd_path = os.path.join(os.getcwd(), BASE_PATH, file.filename)
+                paths_to_try.append(("CWD + BASE_PATH + filename", cwd_path))
+                
+                # Try each path in order
+                for strategy_name, path_to_check in paths_to_try:
+                    if os.path.exists(path_to_check) and os.path.isfile(path_to_check):
+                        file_path = path_to_check
+                        logger.info(f"File found using {strategy_name}: {path_to_check}")
+                        break
+                
+                if not file_path:
+                    # None of the paths exist - log detailed error with all attempted paths
                     logger.error(
                         f"File not found on disk. File ID: {uid}, Filename: {file.filename}, "
                         f"BASE_PATH: {BASE_PATH}, "
-                        f"Reconstructed path: {reconstructed_path}, "
+                        f"Current working directory: {os.getcwd()}, "
                         f"Stored full_path: {file.full_path}, "
+                        f"Attempted paths: {[f'{name}: {path}' for name, path in paths_to_try]}, "
                         f"Request: {request.method} {request.url}"
                     )
                     raise ErrorHandling.not_found("File not found on disk")

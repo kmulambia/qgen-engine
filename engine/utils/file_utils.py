@@ -5,8 +5,27 @@ from engine.schemas.file_schemas import FileMetadata
 from engine.utils.config_util import load_config
 from engine.utils.generators_util import generate_timestamp_string
 
+
+def ensure_path(path: str) -> str:
+    """Ensure the path exists and return it"""
+    Path(path).mkdir(parents=True, exist_ok=True)
+    return path
+
+
 config = load_config()
-BASE_PATH = config.get_variable("FILE_PATH", "files")
+_file_path = config.get_variable("FILE_PATH", "files")
+
+# Normalize BASE_PATH to absolute path
+# If relative, resolve relative to current working directory
+# If absolute, use as-is
+if os.path.isabs(_file_path):
+    BASE_PATH = _file_path
+else:
+    # Resolve relative to current working directory
+    BASE_PATH = os.path.abspath(os.path.normpath(_file_path))
+
+# Ensure BASE_PATH directory exists
+ensure_path(BASE_PATH)
 
 # TODO : Add Config file for content types allowed in system
 CONTENT_TYPES = {
@@ -35,12 +54,6 @@ CONTENT_TYPES = {
     '.flv': 'video/x-flv',
     '.wmv': 'video/x-ms-wmv'
 }
-
-
-def ensure_path(path: str) -> str:
-    """Ensure the path exists and return it"""
-    Path(path).mkdir(parents=True, exist_ok=True)
-    return path
 
 
 def get_file_metadata(file_path: str, original_filename: str) -> FileMetadata:
