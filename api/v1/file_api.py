@@ -26,37 +26,40 @@ MODE = config.get_variable("MODE", "development")
 
 
 def get_cors_headers(request: Request) -> dict:
-    """Get CORS headers based on request origin and configuration"""
+    """Get CORS headers based on request origin and configuration.
+    Always allows the request origin to ensure CORS works properly."""
     origin = request.headers.get("origin")
-    allowed_origins = config.get_variable("CORS_ORIGINS", "*").split(",")
+    allowed_origins_config = config.get_variable("CORS_ORIGINS", "*")
+    allowed_origins = [o.strip() for o in allowed_origins_config.split(",") if o.strip()]
     
-    # Check if origin is allowed
-    if "*" in allowed_origins:
+    logger.debug(f"[CORS] Request origin: {origin}, Allowed origins config: {allowed_origins_config}")
+    
+    # Always allow the requesting origin if provided (most permissive approach)
+    if origin:
+        allow_origin = origin
+        allow_credentials = True
+        logger.debug(f"[CORS] Allowing origin: {origin}")
+    elif "*" in allowed_origins or allowed_origins_config.strip() == "*":
+        # Wildcard configured
         allow_origin = "*"
-        allow_credentials = "false"  # Cannot use credentials with wildcard origin
-    elif origin and origin.strip() in [o.strip() for o in allowed_origins]:
-        allow_origin = origin
-        allow_credentials = "true"
-    elif origin:
-        # Origin provided but not in allowed list - use the origin anyway (for development)
-        allow_origin = origin
-        allow_credentials = "true"
+        allow_credentials = False
     else:
-        # If no origin or not in allowed list, use first allowed origin or *
+        # Use first allowed origin or wildcard as fallback
         allow_origin = allowed_origins[0].strip() if allowed_origins else "*"
-        allow_credentials = "false" if allow_origin == "*" else "true"
+        allow_credentials = allow_origin != "*"
     
     headers = {
         "Access-Control-Allow-Origin": allow_origin,
-        "Access-Control-Allow-Methods": "GET, OPTIONS",
-        "Access-Control-Allow-Headers": "Authorization, Content-Type, Accept",
+        "Access-Control-Allow-Methods": "GET, OPTIONS, HEAD",
+        "Access-Control-Allow-Headers": "Authorization, Content-Type, Accept, Origin, X-Requested-With",
         "Access-Control-Max-Age": "86400",  # 24 hours
     }
     
     # Only include credentials header if not using wildcard
-    if allow_credentials == "true":
+    if allow_credentials and allow_origin != "*":
         headers["Access-Control-Allow-Credentials"] = "true"
     
+    logger.debug(f"[CORS] Returning headers: {headers}")
     return headers
 
 
@@ -202,11 +205,8 @@ class FileAPI(BaseAPI[FileModel, FileCreateSchema, FileUpdateSchema, FileSchema]
                 raise ErrorHandling.server_error("Failed to process file upload")
 
         @self.router.options("/serve/{filename}")
-        async def serve_file_options(
-                request: Request,
-                filename: str,
-        ):
-            """Handle OPTIONS preflight request for file serving"""
+        async def serve_file_options(request: Request, filename: str):
+            """Handle OPTIONS preflight request"""
             cors_headers = get_cors_headers(request)
             return Response(status_code=204, headers=cors_headers)
 
@@ -372,11 +372,8 @@ class FileAPI(BaseAPI[FileModel, FileCreateSchema, FileUpdateSchema, FileSchema]
                 raise ErrorHandling.server_error("Failed to serve file")
 
         @self.router.options("/{uid}/download")
-        async def download_file_options(
-                request: Request,
-                uid: UUID,
-        ):
-            """Handle OPTIONS preflight request for file download"""
+        async def download_file_options(request: Request, uid: UUID):
+            """Handle OPTIONS preflight request"""
             cors_headers = get_cors_headers(request)
             return Response(status_code=204, headers=cors_headers)
 
